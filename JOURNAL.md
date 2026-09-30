@@ -342,3 +342,20 @@ period changes (25%). It is legitimate only as a cut applied identically to sims
   Tail run: 400 MACHO+OGLE stars × (3 + 3) → results/inject/macho_tail.parquet.
 - **Bug:** `--per-class` was ignored because macOS multiprocessing spawns workers, which re-import the module defaults. Fixed by passing the dict in each job.
   Consequence: macho_big runs the default 20 sims per star (not 10). The results are valid, just larger and slower.
+
+---
+
+## 2026-09-30 evening — Mixture fit with all classes; completeness-corrected upper limit
+Sims: macho_big (1,500 stars × 20; per-class bug → defaults) + macho_tail (400 × rwalk_big 3 + jump_big 3) + earlier runs (≈ 32k sims).
+CV bandwidths: 0.25–0.45. Mock recovery (N = 3000; nuisance mix 0.45/0.15/0.08/0.17/0.05/0.10):
+f_true 0 → 0.001 ± 0.003; 0.01 → 0.008 ± 0.006; 0.03 → 0.023 ± 0.008; 0.10 → 0.079 ± 0.013 (bias flips sign vs the small-sim run).
+Misspecified mock (rwalk > 400 s only, different mix): 0.03 → **0.002**. → **f_LTTE is only weakly identified in these 4 features; it depends on the nuisance shapes at the factor-≥2 level.
+Not a measurement yet.**
+
+### Upper limit (no nuisance model needed; `inline analysis, to be scripted`)
+Candidate cuts (D > 40, χ²_ν(α) < 2, amp/σ > 3, ≥ 1.5 cycles, amp < ceiling), pass rates in sims (baseline set to 8350 d for the cycle cut):
+LTTE 0.132 (broad prior); jump_big 0.072; Blazhko 0.023; rwalk 0.005; jump 0.003; rwalk_big 0.003; null 0.
+Completeness (isotropic, half eccentric): M2 0.4–1.5, P 1–10 kd: 0.40; M2 0.15–0.4: 0.11.
+Real MACHO+OGLE stars (common-mode corrected): N = 6614, k = 60 (0.91%); 95% Poisson upper limit 74.4.
+→ **f(M2 0.4–1.5 Msun, P 1–10 kd) < 2.8% (95%)**; f(M2 0.15–0.4) < 10.7%, assuming all candidates were of that class (conservative).
+Main contaminant: large abrupt period changes (jump_big). Next: an explicit break-vs-sinusoid test per candidate; light-curve discriminators; RVs.

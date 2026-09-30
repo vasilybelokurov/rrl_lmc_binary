@@ -22,7 +22,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrlbin.mixture import ClassDensities, bootstrap_fractions, cv_bandwidth, features, fit_fractions  # noqa: E402
 
-CLASSES = ["null", "blazhko", "jump", "rwalk", "ltte"]
+CLASSES = ["null", "blazhko", "jump", "rwalk", "jump_big", "rwalk_big", "ltte"]
 
 
 def draw_mock(pool: dict, fr: dict, N: int, rng) -> np.ndarray:
@@ -32,7 +32,8 @@ def draw_mock(pool: dict, fr: dict, N: int, rng) -> np.ndarray:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", nargs="+", default=["results/inject/macho_run1.parquet", "results/inject/macho_pred_run1.parquet"])
+    ap.add_argument("--runs", nargs="+", default=["results/inject/macho_big.parquet", "results/inject/macho_tail.parquet",
+                                                  "results/inject/macho_run1.parquet", "results/inject/macho_pred_run1.parquet"])
     ap.add_argument("--N", type=int, default=3000)
     ap.add_argument("--n-mock", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
@@ -52,7 +53,7 @@ def main():
     pool = {k: features(mock_df[mock_df.kind == k]) for k in CLASSES}
     print("density sims per class:", dens_df.kind.value_counts().to_dict())
 
-    base = dict(null=0.55, blazhko=0.15, jump=0.10, rwalk=0.20)
+    base = dict(null=0.45, blazhko=0.15, jump=0.08, rwalk=0.17, jump_big=0.05, rwalk_big=0.10)
     print(f"\nA. recovery, N = {a.N}, nuisance mix {base}")
     rows = []
     for fl in [0.0, 0.01, 0.03, 0.10]:
@@ -63,7 +64,7 @@ def main():
             X = draw_mock(pool, fr, a.N, rng)
             lp = dens.logpdf(X)
             f = fit_fractions(lp)[-1]
-            bs = bootstrap_fractions(lp, n_boot=60, seed=j)[:, -1]
+            bs = bootstrap_fractions(lp, n_boot=40, seed=j)[:, -1]
             lo, hi = np.percentile(bs, [16, 84])
             est.append(f)
             cov.append(lo <= fl <= hi)
@@ -71,11 +72,12 @@ def main():
         rows.append(dict(f_true=fl, f_mean=est.mean(), f_sd=est.std(), coverage68=np.mean(cov)))
         print(f"  f_LTTE true {fl:.3f}: fitted mean {est.mean():.4f} +- {est.std():.4f} (sd over mocks); 68% coverage {np.mean(cov):.2f}")
 
-    print("\nB. misspecified random-walk class in the mock (only rw_rms > 400 s) and a different nuisance mix")
-    rw_big = features(mock_df[(mock_df.kind == "rwalk") & (mock_df.rw_rms_s > 400)])
-    pool_b = dict(pool, rwalk=rw_big)
+    print("\nB. misspecified mock: random-walk class restricted to rw_rms > 400 s; different nuisance mix")
+    rw_sel = features(mock_df[(mock_df.kind == "rwalk") & (mock_df.rw_rms_s > 400)])
+    pool_b = dict(pool, rwalk=rw_sel)
     for fl in [0.0, 0.03]:
-        fr = dict(null=0.4 * (1 - fl), blazhko=0.1 * (1 - fl), jump=0.2 * (1 - fl), rwalk=0.3 * (1 - fl), ltte=fl)
+        fr = dict(null=0.3 * (1 - fl), blazhko=0.1 * (1 - fl), jump=0.1 * (1 - fl), rwalk=0.3 * (1 - fl),
+                  jump_big=0.1 * (1 - fl), rwalk_big=0.1 * (1 - fl), ltte=fl)
         est = [fit_fractions(dens.logpdf(draw_mock(pool_b, fr, a.N, rng)))[-1] for _ in range(a.n_mock)]
         print(f"  f_LTTE true {fl:.3f}: fitted mean {np.mean(est):.4f} +- {np.std(est):.4f}")
     Path("results/mixture").mkdir(parents=True, exist_ok=True)
