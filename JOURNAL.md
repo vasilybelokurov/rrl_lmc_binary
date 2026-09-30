@@ -168,3 +168,31 @@ Fraction with D > 17.7: null 0.010; jump 0.055; rwalk 0.21; **Blazhko 0.42**; LT
   The nuisance rates depend on the assumed nuisance priors (arbitrary here), so real false-positive rates are NOT yet known.
 - **Decisive test = out-of-sample prediction**: fit an orbit to OGLE-III+IV (2001–2016), then predict the 1992–2000 MACHO/OGLE-II delays.
   An orbit predicts; a random walk / Blazhko does not. This is why MACHO is needed; it also fixes the long-P degeneracy (baseline → 24 yr).
+
+---
+
+## 2026-09-30 — MACHO fetch restart; MACHO–OGLE delay tie (partial: 1,076 stars in fetched tiles)
+
+### MACHO fetch
+The first run stalled (4 workers each stuck on a slow tile under a 600-s timeout). Restarted with a 90-s timeout, 2 retries,
+per-tile completeness logging (`data/raw/macho/missing_stars.txt`) and `failed_tiles.txt`. At 12:40: 1,370/3,038 tiles, 146 MB, 0 failures,
+1 tile with 2 missing stars (14.8975: seqn 585, 597).
+
+### Season labels and delay gauge (`timing.py`)
+- MACHO observed the LMC nearly year-round (gaps 30–80 d scattered through the year), so gap-based seasons merged years.
+  `year_labels(t)`: season = observing year with the boundary at HJD′ mod 365.25 = 245 (middle of the OGLE seasonal gap, measured from OGLE-III/IV).
+- **Gauge fix:** a constant delay is degenerate with the template phase. Delays are now defined so that the template's fundamental harmonic has
+  phase 0 (the time of the fundamental's maximum relative to T0). The template phase absorbs the data's mean delay.
+  Test: delays are independent of T0 to < 1 s, the fundamental phase is 0, and the delays equal the truth minus a mean (16 tests pass).
+
+### MACHO B vs OGLE I delay offset (`scripts/macho_ogle_offset.py` → results/macho/offset_b_partial.parquet)
+RRab with OGLE-II epochs and a MACHO ID, in fetched tiles: 1,021 fitted; overlap years (1997–1999) p10/50/90 = 3/3/4.
+- Per-season timing error: **MACHO B 135 s** (median; p10 66, p90 261) vs OGLE I 215 s. MACHO (about 1000 epochs, 1992–1999) is a strong data set, not just a baseline extension.
+- Offset Δ = τ_MACHO,B − τ_OGLE,I (781 stars with σ_Δ < 200 s): phase lag of the fundamental −0.0336 cycles (robust SD 0.0081);
+  Δ[s] = −5756 P[d] + 1562; robust residual SD 327 s vs median error 127 s → **intrinsic star-to-star scatter in the band lag of about 300 s**; 1% outliers > 1500 s.
+- Consequence: for stars without an OGLE-II overlap, the MACHO segment can be tied to OGLE only to about ±300 s (prior on a free per-star offset).
+  For stars with overlap (about 2.4k RRab), Δ is measured per star to about 100–150 s. A season-difference χ²_ν median of 1.67 means the overlap differences are mostly consistent.
+
+### Next
+When the fetch completes: rerun the calibration on all tiles; add a per-star MACHO offset column (constrained by the overlap years) to the O−C search;
+rerun injection–recovery with MACHO+OGLE cadences (24-yr baseline) and test out-of-sample prediction (orbit fitted on 1997–2016 → predict 1992–1996).

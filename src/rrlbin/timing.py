@@ -64,6 +64,12 @@ def season_labels(t: np.ndarray, gap: float = 60.0) -> np.ndarray:
     return lab
 
 
+def year_labels(t: np.ndarray, phase0: float = 245.0) -> np.ndarray:
+    """Season = observing year, with the boundary at HJD' mod 365.25 = phase0 (the middle of the OGLE LMC seasonal gap,
+    measured from OGLE-III/IV epochs). Needed for MACHO, which observed the LMC nearly year-round."""
+    return np.floor((np.asarray(t) - phase0) / 365.25).astype(int)
+
+
 # ---------------------------------------------------------------- fits
 @dataclass
 class TimingFit:
@@ -129,7 +135,7 @@ def _season_shift(t, m, w, zp_ep, coef, P, T0, tau0, n_iter=10, grid=True):
                 chi2=float(np.sum(w * r ** 2)), t_eff=float(np.sum(wt * t) / np.sum(wt)))
 
 
-def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7) -> TimingFit:
+def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7, labels=None) -> TimingFit:
     """Joint template + per-season delay fit for one star in one band.
 
     Parameters
@@ -143,7 +149,9 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
     K : int
         Fourier order.
     gap : float
-        Season-break gap [d].
+        Season-break gap [d] (ignored if `labels` is given).
+    labels : array of int, optional
+        Explicit season label per epoch (e.g. year_labels(t)).
     n_outer : int
         Maximum template <-> delay iterations.
     tol : float
@@ -158,7 +166,7 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
     t, m, err = map(np.asarray, (t, m, err))
     seg = np.asarray(seg)
     seg_names, seg_idx = np.unique(seg, return_inverse=True)
-    lab = season_labels(t, gap)
+    lab = season_labels(t, gap) if labels is None else np.asarray(labels)
     seasons, cnt = np.unique(lab, return_counts=True)
     keep = np.isin(lab, seasons[cnt >= min_season])
     w = 1.0 / err ** 2
@@ -195,8 +203,20 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
     seg_season = np.array([seg_names[np.bincount(seg_idx[mask & (lab == s)]).argmax()] for s in ss])
     chi_tot = chi2.sum() / max(mask.sum() - 2 * K - seg_names.size - 3 * ss.size, 1)
     g = lambda k: np.array([res[s][k] for s in ss])
+    # Gauge: a constant delay is degenerate with the template phase. Fix it so that the fundamental harmonic of the
+    # template has phase 0: T(phi) = A1 cos(2 pi phi') + ..., phi' = (t - tau' - T0)/P, tau' = tau + ph1 P / (2 pi).
+    # Delays are then physical (time of the fundamental's maximum light relative to T0) and comparable across bands.
+    _, ph = harmonic_amp_phase(coef)
+    shift = ph[0] * P / TWO_PI
+    k = np.arange(1, coef.size // 2 + 1)
+    c, sn = np.cos(k * ph[0]), np.sin(k * ph[0])
+    a, b = coef[0::2].copy(), coef[1::2].copy()
+    coef = coef.copy()
+    coef[0::2], coef[1::2] = a * c + b * sn, b * c - a * sn
+    tau_g = g("tau") + shift
+    tau_g = tau_g - P * np.round((np.median(tau_g) - 0.0) / P)   # bring the series near zero (whole cycles)
     return TimingFit(P=P, T0=T0, coef=coef, zp=zp, seg_names=seg_names, season=ss,
-                     t_season=g("t_eff"), tau=g("tau"), tau_err=np.sqrt(g("var_tau") * scale),
+                     t_season=g("t_eff"), tau=tau_g, tau_err=np.sqrt(g("var_tau") * scale),
                      alpha=g("alpha"), alpha_err=np.sqrt(g("var_alpha") * scale), dm=g("dm"),
                      chi2nu_season=chi2nu, n_season=n, seg_season=seg_season, mask=mask, chi2nu=float(chi_tot))
 

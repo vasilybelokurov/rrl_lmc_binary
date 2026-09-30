@@ -114,3 +114,24 @@ def test_noise_pulls_and_zero_points():
 def test_unwrap():
     tau = np.array([0.0, 0.1, 0.2, 0.3 - P, 0.4 - P])
     assert np.allclose(unwrap_delays(tau, P), [0, 0.1, 0.2, 0.3, 0.4])
+
+
+def test_gauge_fixed_delays_independent_of_T0():
+    """With the fundamental-phase gauge, delays do not depend on the reference epoch T0 (mod P), and the
+    returned template has fundamental phase 0 and reproduces the data."""
+    rng = np.random.default_rng(7)
+    t = cadence(rng, n_seasons=8)
+    lab = season_labels(t)
+    step = rng.normal(0, 300, lab.max() + 1) / 86400
+    m, e = synth(t, lambda x: step[lab], rng, sigma=0.02)
+    f1 = fit_timing(t, m, e, np.full(t.size, "O4"), P, T0, K=8)
+    f2 = fit_timing(t, m, e, np.full(t.size, "O4"), P, T0 + 0.13, K=8)
+    d = (f1.tau - (f2.tau + 0.13))
+    d = (d + P / 2) % P - P / 2
+    assert np.max(np.abs(d)) * 86400 < 1.0
+    assert abs(harmonic_amp_phase(f1.coef)[1][0]) < 1e-10
+    # the template phase absorbs the (Fisher-weighted) mean delay of the data, so gauge-fixed delays equal the true
+    # delays minus a constant close to their mean (PH[0] = 0 for the input template)
+    dd = (f1.tau - step[f1.season] + P / 2) % P - P / 2
+    assert np.all(np.abs(dd - np.average(dd, weights=f1.tau_err ** -2)) < 4 * f1.tau_err)
+    assert abs(np.mean(dd) + np.mean(step[f1.season])) < 4 * np.mean(f1.tau_err) / np.sqrt(dd.size)
