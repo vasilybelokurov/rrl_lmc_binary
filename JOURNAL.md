@@ -247,3 +247,31 @@ Reading (tested): the predictive score improves the orbit/nuisance ratio only by
 → Switch to a population mixture fit: per-star summary statistics (D, P_best, α statistic, predictive score, s, rw_rms) modelled as a mixture of
 simulated classes (null / Blazhko / jump / random walk / LTTE), with class fractions fitted to the real distribution. This requires realistic
 nuisance simulations: first match their parameter distributions to the real H0 noise fits (s, q) from the science run.
+
+---
+
+## 2026-09-30 — MACHO fetch complete; population mixture fit: first mock tests
+
+### MACHO fetch complete
+3,038/3,038 tiles (1 retried), 303 MB. Validation: requested 8,557 stars, returned **8,406 (98.2%)**, missing 151, extra (not requested) 0.
+
+### Mixture fit (`src/rrlbin/mixture.py`; `tests/test_mixture.py`; `scripts/mixture_mock.py`)
+Features per star: ln(1 + D), log P_best, ln χ²_ν(α), asinh(jitter/σ_season). Class densities: Gaussian KDE per class (null, Blazhko, jump, rwalk, LTTE)
+from simulations; class fractions by EM; errors by bootstrap over stars. Unit test: exact recovery with known Gaussian classes.
+Mock test on MACHO+OGLE sims, split by STAR into a density half and a mock half (N = 3000 per mock, nuisance mix 0.55/0.15/0.10/0.20):
+| KDE bandwidth / features | f_LTTE = 0 | 0.03 | 0.10 |
+|---|---|---|---|
+| Scott, 4 features | 0.013–0.015 | 0.042–0.045 | 0.112 |
+| 0.15 | 0.094 | 0.114 | — |
+| 0.25 | 0.031 | 0.057 | — |
+| 0.5 | 0.008 | 0.033 | 0.099 |
+| 0.8 | 0.011 | 0.042 | 0.112 |
+| no jitter feature, 0.5 | 0.001 | 0.027 | 0.085 |
+| ln D + α only, 0.5 | 0.000 | 0.005 | 0.046 |
+Bootstrap 68% coverage was poor (0–0.4) with Scott because of the bias.
+Diagnosis: the bias depends on the density estimate, because only about 290 stars (21 sims each) build the class densities and mock points from other stars
+fall where the nuisance KDEs are thin; the broad LTTE class absorbs them (too narrow a bandwidth → strong positive bias).
+The spike at zero jitter is not the cause (the same jitter on the data changes nothing).
+→ **Systematic of about ±0.01 in f_LTTE from density modelling alone** at the current simulation size. Fixes: cross-validated bandwidth by held-out stars
+(`cv_bandwidth`: selects 0.35–0.5 per class) and many more simulated stars (running: 1,500 MACHO+OGLE stars × 10 sims → results/inject/macho_big.parquet).
+The LTTE fraction is conditional on the injected orbital prior (log-uniform P 300–10⁴ d, M2 0.05–1.5 Msun, isotropic, half eccentric).
