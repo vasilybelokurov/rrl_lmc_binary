@@ -382,3 +382,35 @@ Main contaminant: large abrupt period changes (jump_big). Next: an explicit brea
 - Upper limit (N = 6614, k = 62, k95 = 76.6): **f < 2.8% (M2 0.4–1.5, 1–10 kd), f < 11% (M2 0.15–0.4)**, unchanged by the grid fix.
 - Candidates: P 2.3–13.8 yr (median 10.9; 81% at 2.5–5 kd); 52% above the edge-on 0.5-Msun amplitude; M2,min 0.11–2.0; K1 1.8–16.5 km/s. Sheets regenerated (plots/candidates/, 69).
 - Write-up: new §5 (panel-by-panel description of plots/summary_stats.png on a landscape page; Table 2 of cuts with per-class pass fractions; the motivation for each cut); §6 status updated with the corrected numbers. 13 pp.
+
+---
+
+## 2026-10-01 — Pipeline v3: all fixes implemented and validated at small scale (full refit awaits user approval)
+User: implement all fixes; test before the refit; **the full refit needs the user's approval**.
+Aliasing question (user: "the sampling does not repeat exactly from year to year"): `scripts/alias_test.py` on 200 real MACHO+OGLE stars:
+season epochs scatter by 40 d rms within the year; spectral window at 1/yr = 0.85; injected orbits on a grid from 300 d are recovered at the TRUE period
+86–100% of the time (alias ≤ 10% at A = 2σ, ≤ 1% at 4σ) → the 800-d cut was over-conservative (my mock had near-degenerate sampling).
+Real limit = season-mean smearing, |sinc(π·240/P)| = 0.23 (300 d), 0.50 (400 d), 0.66 (500 d) → **grid from 400 d**.
+
+### New code (tests: 36 pass)
+- Level 1 `src/rrlbin/pipeline.py` (load → fit per band → series): **MACHO R** added (band 2); `timing._season_coherence`: per-season delay of the fundamental
+  minus that of the higher harmonics (**harmonic coherence**; 0 for a pure time shift). Test: pure delay χ²_ν < 2.5; a shape change gives > 4.
+- Level 2 `src/rrlbin/oc.py` (shared by data and sims): **robust unwrapping** (local linear prediction from ±2 neighbours; repairs slips, keeps a 1.5-cycle drift);
+  separate B/R offsets with **band-lag priors** (pseudo-rows without jitter); circular and **2-harmonic (eccentric)** orbit fits (the eccentric amplitude is recovered better);
+  **alias flag** (D_best − max D at ±1/yr aliases); red-noise null; **predictive test** (the period is searched on the TRAINING seasons only; leakage found and fixed);
+  requires each MACHO band tied to OGLE by OGLE-II overlap or a prior (bug found: 08101 had a score without such a tie); pooled per-band α and coherence χ²_ν;
+  **iterative common mode**, with the degenerate directions (common quadratic, per-band constants) projected out and a clipped mean
+  (the median version did not converge: 19-s per-iteration drift; now a synthetic test converges; real data settle into a 7-s cycle, negligible).
+- Scripts: level1_real.py, level1_sims.py (all bands from one delay realization; new class **empirical** = white season jitter + random walk with (s, rw) drawn
+  from the real H0 fits), level2.py (identical stats for both), calibrate_band_lag.py.
+
+### Validation (results/validation_v3/: 200 real OGLE-II+MACHO stars; 30 sim stars × 18)
+- Real: 198/200 have I + MACHO B + R. Common mode (200 stars): MACHO 1998–99 about −90 … −290 s; OGLE ±10–70 s (noisy with 200 stars).
+- Band lag: B −6730 P + 2001 s, intrinsic sd 325 s (lag −0.036 cycles); **R −2920 P + 851 s, sd 161 s (lag −0.016 cycles)**.
+- MACHO R per-season errors are comparable to B (e.g. 08101: I 101, B 59, R 81 s; D 56 → 79 with R).
+- **Bug found by the null check:** with priors, null D reached 39.5 (60 sims), because simulated MACHO bands had zero offset (gauge-fixed templates),
+  in 5σ tension with the lag prior. Fix: sims draw each star's B/R offsets from the lag relation + intrinsic scatter. After the fix: null D p50/p90/max = 7.7/12.5/15.4.
+- Coherence: all sim classes about 1.0 (the sim Blazhko is coherent by construction); real p90 1.8 vs sims about 1.4 → real shape changes exist → a useful veto.
+
+### Proposed full refit (awaiting approval)
+Order: real L1 (17,492 stars, ~75 min) → common mode → band lag → real L2 (~30 min) → sims L1 with the real noise table + lag (1,500 stars × 18, ~2.5 h) → sims L2 (~45 min).

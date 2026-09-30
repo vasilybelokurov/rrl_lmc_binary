@@ -135,3 +135,26 @@ def test_gauge_fixed_delays_independent_of_T0():
     dd = (f1.tau - step[f1.season] + P / 2) % P - P / 2
     assert np.all(np.abs(dd - np.average(dd, weights=f1.tau_err ** -2)) < 4 * f1.tau_err)
     assert abs(np.mean(dd) + np.mean(step[f1.season])) < 4 * np.mean(f1.tau_err) / np.sqrt(dd.size)
+
+
+def test_harmonic_coherence_zero_for_pure_delay_nonzero_for_shape_change():
+    """A pure time shift (LTTE) gives tau_1 - tau_h consistent with 0; shifting only the higher harmonics
+    (a shape change) is detected."""
+    rng = np.random.default_rng(12)
+    t = cadence(rng, n_seasons=8)
+    lab = season_labels(t)
+    step = rng.normal(0, 400, lab.max() + 1) / 86400
+    m, e = synth(t, lambda x: step[lab], rng, sigma=0.02)
+    f = fit_timing(t, m, e, np.full(t.size, "O4"), P, T0, K=8)
+    z = f.coh / f.coh_err
+    assert np.all(np.abs(z) < 4) and abs(np.mean(z)) < 1.5
+    # shape change: in seasons >= 4 the higher harmonics lag the fundamental by 0.02 P
+    c_h = COEF.copy(); c_h[:2] = 0
+    c_1 = COEF.copy(); c_1[2:] = 0
+    lag = np.where(lab >= 4, 0.02 * P, 0.0)
+    m2 = 18.8 + fourier_eval(c_1, (t - T0) / P) + fourier_eval(c_h, (t - lag - T0) / P) + rng.normal(0, 0.02, t.size)
+    f2 = fit_timing(t, m2, e, np.full(t.size, "O4"), P, T0, K=8)
+    def chi2nu(f):   # scatter of the coherence values between seasons (the statistic used as a veto)
+        w = f.coh_err ** -2
+        return np.sum(w * (f.coh - np.sum(w * f.coh) / w.sum()) ** 2) / (f.coh.size - 1)
+    assert chi2nu(f) < 2.5 and chi2nu(f2) > 4

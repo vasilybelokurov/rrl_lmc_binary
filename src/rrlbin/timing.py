@@ -91,6 +91,8 @@ class TimingFit:
     seg_season: np.ndarray      # segment of each season
     mask: np.ndarray            # epochs kept after clipping
     chi2nu: float
+    coh: np.ndarray = None      # per season: delay of the fundamental minus delay of the higher harmonics [d]
+    coh_err: np.ndarray = None
 
 
 def _template_fit(t, m, w, seg_idx, nseg, tau_ep, P, T0, K):
@@ -133,6 +135,34 @@ def _season_shift(t, m, w, zp_ep, coef, P, T0, tau0, n_iter=10, grid=True):
     wt = w * J[:, 0] ** 2
     return dict(tau=p[0], dm=p[1], alpha=p[2], var_tau=cov[0, 0], var_alpha=cov[2, 2],
                 chi2=float(np.sum(w * r ** 2)), t_eff=float(np.sum(wt * t) / np.sum(wt)))
+
+
+def _season_coherence(t, m, w, zp_ep, coef, P, T0, tau, dm, alpha, n_iter=10):
+    """Harmonic-coherence test for one season: fit separate delays to the fundamental (k = 1) and to the higher
+    harmonics (k >= 2) of the template,
+
+        m = zp + dm + alpha [T_1((t - tau_1 - T0)/P) + T_h((t - tau_h - T0)/P)],
+
+    starting from the common delay. A light-travel delay shifts every harmonic by the same TIME, so tau_1 - tau_h = 0;
+    changes of the light-curve shape (Blazhko modulation, changing blends) generally make it non-zero.
+    Returns (tau_1 - tau_h, its error) in days."""
+    c1 = coef.copy()
+    c1[2:] = 0.0
+    ch = coef.copy()
+    ch[:2] = 0.0
+    p = np.array([tau, tau, dm, alpha])
+    for _ in range(n_iter):
+        f1, fh = (t - p[0] - T0) / P, (t - p[1] - T0) / P
+        T1, Th = fourier_eval(c1, f1), fourier_eval(ch, fh)
+        r = m - zp_ep - p[2] - p[3] * (T1 + Th)
+        J = np.column_stack([-p[3] * fourier_dphi(c1, f1) / P, -p[3] * fourier_dphi(ch, fh) / P, np.ones_like(t), T1 + Th])
+        H = J.T @ (J * w[:, None])
+        step = np.linalg.solve(H, J.T @ (w * r))
+        p = p + step
+        if np.max(np.abs(step[:2])) < 1e-8:
+            break
+    cov = np.linalg.inv(H)
+    return p[0] - p[1], float(np.sqrt(cov[0, 0] + cov[1, 1] - 2 * cov[0, 1]))
 
 
 def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7, labels=None) -> TimingFit:
@@ -203,6 +233,10 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
     seg_season = np.array([seg_names[np.bincount(seg_idx[mask & (lab == s)]).argmax()] for s in ss])
     chi_tot = chi2.sum() / max(mask.sum() - 2 * K - seg_names.size - 3 * ss.size, 1)
     g = lambda k: np.array([res[s][k] for s in ss])
+    # harmonic coherence per season (at the final template); error scaled like tau's
+    coh = np.array([_season_coherence(t[mask & (lab == s)], m[mask & (lab == s)], w[mask & (lab == s)],
+                                      zp[seg_idx[mask & (lab == s)]], coef, P, T0, res[s]["tau"], res[s]["dm"],
+                                      res[s]["alpha"]) for s in ss]).reshape(-1, 2)
     # Gauge: a constant delay is degenerate with the template phase. Fix it so that the fundamental harmonic of the
     # template has phase 0: T(phi) = A1 cos(2 pi phi') + ..., phi' = (t - tau' - T0)/P, tau' = tau + ph1 P / (2 pi).
     # Delays are then physical (time of the fundamental's maximum light relative to T0) and comparable across bands.
@@ -218,7 +252,8 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
     return TimingFit(P=P, T0=T0, coef=coef, zp=zp, seg_names=seg_names, season=ss,
                      t_season=g("t_eff"), tau=tau_g, tau_err=np.sqrt(g("var_tau") * scale),
                      alpha=g("alpha"), alpha_err=np.sqrt(g("var_alpha") * scale), dm=g("dm"),
-                     chi2nu_season=chi2nu, n_season=n, seg_season=seg_season, mask=mask, chi2nu=float(chi_tot))
+                     chi2nu_season=chi2nu, n_season=n, seg_season=seg_season, mask=mask, chi2nu=float(chi_tot),
+                     coh=coh[:, 0], coh_err=coh[:, 1] * np.sqrt(scale))
 
 
 def unwrap_delays(tau: np.ndarray, P: float) -> np.ndarray:
