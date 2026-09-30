@@ -10,7 +10,6 @@
 \usepackage{enumitem}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{graphicx}
-\usepackage{rotating}
 \usepackage{xcolor}
 \usepackage{xurl}
 \usepackage{hyperref}
@@ -294,12 +293,12 @@ Nyquist-safe period grid) together with 23{,}552 simulations run through the sam
 walk, 2 large jumps, 2 large random walks and 4 LTTE per star). All numbers below are from
 \texttt{scripts/selection\_numbers.py} (\texttt{results/real/selection\_numbers.json}).
 
-\begin{sidewaysfigure}
-\centering\includegraphics[width=\textheight]{summary_stats.png}
+\begin{figure}[p]
+\centering\includegraphics[height=0.9\textheight]{summary_stats.png}
 \caption{Summary statistics of the \OC\ fits and the candidate selection. Grey: all real RRab; red: the 69 candidates;
 coloured lines: simulated classes. Panels are described in \cref{sec:panels}; the cuts in \cref{tab:cuts}.}
 \label{fig:summary}
-\end{sidewaysfigure}
+\end{figure}
 
 \subsection{The panels}\label{sec:panels}
 \begin{description}[leftmargin=0pt,style=nextline]

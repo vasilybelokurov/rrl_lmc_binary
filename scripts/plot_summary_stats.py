@@ -77,7 +77,7 @@ def main():
     print("sim pass fractions (all cuts):", s.groupby("kind")["all"].mean().round(4).to_dict())
 
     grey, red = "0.55", "C3"
-    fig, ax = plt.subplots(2, 4, figsize=(20, 9.5))
+    fig, ax = plt.subplots(4, 2, figsize=(12.5, 20))   # portrait layout (fits an upright page)
     ax = ax.ravel()
     # (a) D distributions
     bins = np.linspace(0, 100, 51)
