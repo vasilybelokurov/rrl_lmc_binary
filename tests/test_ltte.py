@@ -71,3 +71,20 @@ def test_oc_search_free_offset_column():
     P = period_grid(np.ptp(t))
     r = oc_search(t, y, err, P, X_extra=macho.astype(float)[:, None])
     assert abs(r["P_best"] / 2200 - 1) < 0.1 and abs(r["amp"] * 86400 - 600) < 200
+
+
+def test_predictive_score_orbit_vs_random_walk():
+    """Held-out early seasons: a real orbit gives a positive predictive score on average; a random walk does not."""
+    from rrlbin.ltte import predictive_score
+    from rrlbin.simulate import delay_random_walk
+    rng = np.random.default_rng(21)
+    t = -1300 + 365.25 * np.arange(24) + rng.uniform(0, 60, 24)     # 1992-2015-like, one point per year
+    err = np.full(t.size, 150 / 86400)
+    test = t < 450
+    so, sr = [], []
+    for _ in range(60):
+        y = 800 / 86400 * np.sin(2 * np.pi * t / rng.uniform(1500, 3500) + rng.uniform(0, 6)) + rng.normal(0, 1, t.size) * err
+        so.append(predictive_score(t, y, err, test)["score"])
+        y = delay_random_walk(t, 800 / 86400, rng) + rng.normal(0, 1, t.size) * err
+        sr.append(predictive_score(t, y, err, test)["score"])
+    assert np.median(so) > 2 and np.median(so) > np.median(sr) + 2

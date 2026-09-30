@@ -21,7 +21,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrlbin.io import read_macho, read_ogle4_ident  # noqa: E402
-from rrlbin.ltte import oc_search, period_grid  # noqa: E402
+from rrlbin.ltte import oc_search, period_grid, predictive_score  # noqa: E402
 from rrlbin.simulate import delay_and_amplitude, simulate_lc  # noqa: E402
 from rrlbin.timing import fit_timing, unwrap_delays, year_labels  # noqa: E402
 
@@ -51,6 +51,12 @@ def analyse(tO, mO, eO, segO, tM, mM, eM, P, T0):
     ind = np.r_[np.ones(tauM.size), np.zeros(tauO.size)][:, None]
     r = oc_search(t, tau, err, period_grid(np.ptp(t)), X_extra=ind)
     n_overlap = int(np.isin(fM.season, fO.season).sum())
+    # out-of-sample test: hold out the MACHO seasons before 1997 (HJD' < 450, i.e. before OGLE-II), train on the rest;
+    # the MACHO offset is then fixed by the overlap years in the training set
+    test = (ind[:, 0] == 1) & (t < 450)
+    if test.sum() >= 3 and ((ind[:, 0] == 1) & ~test).sum() >= 2 and (tO < 2000).any():
+        ps = predictive_score(t, tau, err, test, X_extra=ind)
+        out.update(pred_score=ps["score"], P_train=ps["P_train"], D_train=ps["D_train"], n_test=int(test.sum()))
     out.update(D=r["D"], P_best=r["P_best"], amp_best_s=r["amp"] * DAY, jit0_s=r["jit0"] * DAY,
                errO_med_s=float(np.median(fO.tau_err) * DAY), errM_med_s=float(np.median(fM.tau_err) * DAY),
                n_overlap=n_overlap, alpha_chi2nu=alpha_chi2(fO), alpha_chi2nu_M=alpha_chi2(fM),
@@ -91,6 +97,7 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=2)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--out", default="results/inject/macho_run1.parquet")
+    ap.add_argument("--require-o2", action="store_true", help="only stars with OGLE-II epochs (for the predictive test)")
     a = ap.parse_args()
     inv = pd.read_parquet("data/lc_inventory.parquet")
     ident = read_ogle4_ident("data/raw/ogle4_lmc_rrlyr/ident.dat")[["ogle_id", "ra", "dec"]]
@@ -98,6 +105,8 @@ def main() -> None:
                       names=["ogle_id", "P", "T0"], header=None)
     s = inv[(inv.subtype == "RRab") & (inv.n3_I > 0) & (inv.n4_I > 0) & (inv.macho_id.fillna("").str.count(r"\.") == 2)]
     s = s[[Path("data/raw/macho/" + ".".join(m.split(".")[:2]) + ".parquet").exists() for m in s.macho_id]]
+    if a.require_o2:
+        s = s[s.t3_first < 2000]
     s = s.merge(par, on="ogle_id").merge(ident, on="ogle_id")
     print(f"eligible stars (tile fetched): {len(s)}", flush=True)
     s = s.sample(n=min(a.n_stars, len(s)), random_state=a.seed)

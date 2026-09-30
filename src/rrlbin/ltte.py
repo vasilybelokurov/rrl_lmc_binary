@@ -152,3 +152,73 @@ def oc_search_red(t, tau, err, periods, s_grid=None, q_grid=None, t_ref=None):
     k = int(np.argmax(Dp))
     b = best[1]
     return dict(D=float(Dp[k]), P_best=float(periods[k]), amp=float(np.hypot(b[3], b[4])), Dp=Dp)
+
+
+# ------------------------------------------------------------------ predictive (out-of-sample) test
+def _design(t, t_ref, P_orb, X_extra):
+    x = (t - t_ref) / 1000.0
+    X = np.vander(x, 3)
+    if X_extra is not None:
+        X = np.column_stack([X, X_extra])
+    if P_orb is not None:
+        w = 2 * np.pi * t / P_orb
+        X = np.column_stack([X, np.sin(w), np.cos(w)])
+    return X
+
+
+def predictive_lnl(t_tr, y_tr, e_tr, t_te, y_te, e_te, P_orb=None, X_tr=None, X_te=None, s_grid=None):
+    """Gaussian predictive log-likelihood of test delays given a linear model fitted to training delays.
+
+    Model: quadratic (+ extra nuisance columns) (+ circular orbit at fixed P_orb), white jitter s (profiled on the
+    training set). The predictive covariance includes the parameter uncertainty: C = diag(e_te^2 + s^2) + X Cov_beta X^T.
+    """
+    t_ref = np.average(t_tr, weights=e_tr ** -2)
+    A = _design(t_tr, t_ref, P_orb, X_tr)
+    B = _design(t_te, t_ref, P_orb, X_te)
+    if s_grid is None:
+        s_grid = np.r_[0.0, np.geomspace(0.1, 30, 30) * np.median(e_tr)]
+    _, s2, beta = _profile_lnl(A, y_tr, e_tr ** 2, s_grid ** 2)
+    v = e_tr ** 2 + s2
+    cov_b = np.linalg.pinv(A.T @ (A / v[:, None]))
+    C = np.diag(e_te ** 2 + s2) + B @ cov_b @ B.T
+    r = y_te - B @ beta
+    L = np.linalg.cholesky(C)
+    z = np.linalg.solve(L, r)
+    return float(-0.5 * z @ z - np.sum(np.log(np.diag(L))) - 0.5 * r.size * np.log(2 * np.pi))
+
+
+def predictive_score(t, y, e, test, X_extra=None, periods=None):
+    """Out-of-sample test of an orbit: search the training seasons (~test) for the best circular orbit, then
+    score = lnL_pred(test | orbit) - lnL_pred(test | quadratic only). Positive = the orbit predicts the held-out seasons.
+    Returns dict(score, P_train, D_train)."""
+    tr = ~test
+    Xtr = None if X_extra is None else X_extra[tr]
+    Xte = None if X_extra is None else X_extra[test]
+    if periods is None:
+        periods = period_grid(np.ptp(t[tr]))
+    r = oc_search(t[tr], y[tr], e[tr], periods, X_extra=Xtr)
+    l1 = predictive_lnl(t[tr], y[tr], e[tr], t[test], y[test], e[test], r["P_best"], Xtr, Xte)
+    l0 = predictive_lnl(t[tr], y[tr], e[tr], t[test], y[test], e[test], None, Xtr, Xte)
+    return dict(score=l1 - l0, P_train=r["P_best"], D_train=r["D"])
+
+
+def fit_red_null(t, tau, err, X_extra=None, s_grid=None, q_grid=None):
+    """ML white jitter s [d] and random-walk strength q [d^2/d] under H0 (quadratic + nuisance columns), on grids.
+    Returns dict(s, q, lnL). The rms random-walk excursion over the baseline T is sqrt(q T)."""
+    t, tau, err = map(np.asarray, (t, tau, err))
+    e0, T = np.median(err), np.ptp(t)
+    if s_grid is None:
+        s_grid = np.r_[0.0, np.geomspace(0.1, 30, 16) * e0]
+    if q_grid is None:
+        q_grid = np.r_[0.0, (np.geomspace(0.1, 30, 16) * e0) ** 2 / T]
+    X = np.vander((t - np.average(t, weights=err ** -2)) / 1000.0, 3)
+    if X_extra is not None:
+        X = np.column_stack([X, X_extra])
+    W = np.minimum.outer(t - t.min(), t - t.min())
+    best = (-np.inf, 0.0, 0.0)
+    for s in s_grid:
+        for q in q_grid:
+            l, _ = _gls_lnl(X, tau, np.diag(err ** 2 + s ** 2) + q * W)
+            if l > best[0]:
+                best = (l, s, q)
+    return dict(lnL=float(best[0]), s=float(best[1]), q=float(best[2]))
