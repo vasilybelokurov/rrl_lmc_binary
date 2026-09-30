@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import argparse
 import sys
+
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+import chunked  # noqa: E402,F401  (sets single-threaded BLAS before numpy)
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -116,10 +119,9 @@ def main() -> None:
     s = s.sample(n=min(a.n_stars, len(s)), random_state=a.seed)
     jobs = [(o, mi, float(P), float(T0), ra, de, a.seed * 100000 + k)
             for k, (o, mi, P, T0, ra, de) in enumerate(zip(s.ogle_id, s.macho_id, s.P, s.T0, s.ra, s.dec))]
-    with Pool(a.workers) as pool:
-        rows = [r for rs in pool.imap_unordered(one_star, jobs, chunksize=2) for r in rs]
-    df = pd.DataFrame(rows)
-    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    parts = Path(a.out).with_suffix("")
+    chunked.run_chunked(one_star, jobs, parts, workers=a.workers, chunk=60, flatten=True)
+    df = chunked.merge_parts(parts)
     df.to_parquet(a.out)
     print(df.kind.value_counts().to_string())
 

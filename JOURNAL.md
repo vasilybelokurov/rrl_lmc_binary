@@ -275,3 +275,10 @@ The spike at zero jitter is not the cause (the same jitter on the data changes n
 → **Systematic of about ±0.01 in f_LTTE from density modelling alone** at the current simulation size. Fixes: cross-validated bandwidth by held-out stars
 (`cv_bandwidth`: selects 0.35–0.5 per class) and many more simulated stars (running: 1,500 MACHO+OGLE stars × 10 sims → results/inject/macho_big.parquet).
 The LTTE fraction is conditional on the injected orbital prior (log-uniform P 300–10⁴ d, M2 0.05–1.5 Msun, isotropic, half eccentric).
+
+### Run management (2026-09-30 afternoon)
+The first full science run was stopped by the session's 2-h background limit with no output: the laptop was down for about 3 h, so wall time elapsed
+while the job was paused (not a slowdown; my thread-oversubscription guess was wrong). The 1,500-star simulation was restarted for the same reason.
+Fix: `scripts/chunked.py`, a resumable chunked parallel map (part files per chunk, progress line per chunk, single-threaded BLAS in the workers);
+jobs are launched with `nohup caffeinate -i` (detached, idle sleep prevented). Profile: 1.2 s per MACHO+OGLE star single-core
+(fit_timing 53%, MJD→HJD 28%, O−C search 17%). Full run: about 24 s per 500 stars on 6 workers.

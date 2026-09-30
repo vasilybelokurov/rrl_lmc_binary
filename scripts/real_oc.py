@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import argparse
 import sys
+
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+import chunked  # noqa: E402,F401  (sets single-threaded BLAS before numpy)
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -87,12 +90,12 @@ def main():
     s = inv[(inv.subtype == "RRab") & (inv.n3_I > 0) & (inv.n4_I > 0)].merge(par, on="ogle_id").merge(ident, on="ogle_id")
     if a.limit:
         s = s.sample(a.limit, random_state=0)
+    s = s.sort_values("ogle_id")   # deterministic order (resumable chunks)
     jobs = list(zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec))
     print(f"stars: {len(jobs)}", flush=True)
-    with Pool(a.workers) as pool:
-        rows = list(pool.imap_unordered(one, jobs, chunksize=8))
-    df = pd.DataFrame(rows)
-    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    parts = Path(a.out).with_suffix("")
+    chunked.run_chunked(one, jobs, parts, workers=a.workers, chunk=500)
+    df = chunked.merge_parts(parts)
     df.to_parquet(a.out)
     ok = df[df.ok]
     print(f"ok {len(ok)} / {len(df)}; with MACHO {ok.has_M.sum()}; with predictive score {ok.pred_score.notna().sum() if 'pred_score' in ok else 0}")
