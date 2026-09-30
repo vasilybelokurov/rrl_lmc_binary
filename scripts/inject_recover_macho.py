@@ -97,8 +97,12 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=2)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--out", default="results/inject/macho_run1.parquet")
+    ap.add_argument("--per-class", default=None, help="sims per class, e.g. null=2,blazhko=2,jump=1,rwalk=1,ltte=4")
     ap.add_argument("--require-o2", action="store_true", help="only stars with OGLE-II epochs (for the predictive test)")
     a = ap.parse_args()
+    if a.per_class:
+        N_PER_CLASS.clear()
+        N_PER_CLASS.update({k: int(v) for k, v in (x.split("=") for x in a.per_class.split(","))})
     inv = pd.read_parquet("data/lc_inventory.parquet")
     ident = read_ogle4_ident("data/raw/ogle4_lmc_rrlyr/ident.dat")[["ogle_id", "ra", "dec"]]
     par = pd.read_fwf("data/raw/ogle4_lmc_rrlyr/RRab.dat", colspecs=[(0, 20), (37, 46), (58, 68)],
