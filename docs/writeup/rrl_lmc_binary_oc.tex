@@ -10,6 +10,7 @@
 \usepackage{enumitem}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{graphicx}
+\usepackage{rotating}
 \usepackage{xcolor}
 \usepackage{xurl}
 \usepackage{hyperref}
@@ -43,8 +44,8 @@ companions of $0.1$--$1\,\Msun$ on 3--30-yr orbits. We measure this delay once p
 17{,}492 LMC RRab stars with OGLE-II/III/IV photometry (1997--2016) and, for 6{,}614 of them, MACHO photometry
 (1992--1999). The resulting time series of delays is the \OC\ diagram. This note explains the measurement in
 words and in equations, illustrates it with mock data, and documents the pipeline, its tests and its known
-limitations. Results are summarized only briefly (\cref{sec:status}): they are being recomputed after a fix
-to the orbital-period search (\cref{sec:nyquist}).
+limitations. The candidate selection is explained panel by panel in \cref{sec:selection}; results are summarized briefly in
+\cref{sec:status}.
 \end{abstract}
 
 \tableofcontents
@@ -259,7 +260,7 @@ correction 12\,s rms per star; the candidate list is unchanged by it).
 $D$ (\cref{eq:D}) is maximized over trial periods uniform in frequency, from 800\,d to twice the baseline. Season
 delays sample the \OC\ about once per year, so orbital periods below the Nyquist limit of 2\,yr are aliased: in an
 earlier version the grid started at 300\,d and a 3000-d orbit could be assigned its alias at
-$1/(1/365.25-1/3000)=416$\,d. \textbf{All statistics based on the earlier grid are being recomputed.}
+$1/(1/365.25-1/3000)=416$\,d. All statistics in this note use the corrected grid.
 Orbits shorter than 2\,yr would require within-season timing and are outside the present search.
 
 \subsection{Nuisances and discriminators}\label{sec:nuis}
@@ -285,20 +286,124 @@ function, O$-$C search recovery and null calibration, the annual-Nyquist grid, p
 runs use a chunked, resumable runner. Full log: \texttt{JOURNAL.md}.
 
 %==============================================================================
-\section{Status (to be updated after the re-run)}\label{sec:status}
-Before the period-grid fix, the candidate selection ($D>40$, amplitude veto, $A/\sigma>3$, $\ge1.5$ cycles, ceiling)
-retained 67 stars (60 with MACHO), several with smooth two-cycle \OC\ curves on 12--14-yr periods
-(\cref{fig:cand}). The population mixture fit of the binary fraction was found to be only weakly identified (it
-depends on the assumed nuisance shapes by a factor $\gtrsim2$), and a conservative completeness-corrected upper limit
-was $f<2.8\%$ (95\%) for $M_2=0.4$--$1.5\,\Msun$, $P_{\rm orb}=1$--$10$\,kd. These numbers will change with the corrected
-grid and are \textbf{preliminary}.
+\section{Selection of candidates}\label{sec:selection}
+
+\Cref{fig:summary} summarizes the \OC\ fits of all 17{,}492 RRab (after the common-mode correction and on the
+Nyquist-safe period grid) together with 23{,}552 simulations run through the same pipeline on the real cadences of
+1{,}472 MACHO+OGLE stars (\texttt{results/inject/macho\_v2.parquet}; 2 null, 2 Blazhko, 1 small jump, 1 small random
+walk, 2 large jumps, 2 large random walks and 4 LTTE per star). All numbers below are from
+\texttt{scripts/selection\_numbers.py} (\texttt{results/real/selection\_numbers.json}).
+
+\begin{sidewaysfigure}
+\centering\includegraphics[width=\textheight]{summary_stats.png}
+\caption{Summary statistics of the \OC\ fits and the candidate selection. Grey: all real RRab; red: the 69 candidates;
+coloured lines: simulated classes. Panels are described in \cref{sec:panels}; the cuts in \cref{tab:cuts}.}
+\label{fig:summary}
+\end{sidewaysfigure}
+
+\subsection{The panels}\label{sec:panels}
+\begin{description}[leftmargin=0pt,style=nextline]
+\item[(a) Detection statistic.] Distribution of $D$ (\cref{eq:D}) for real stars (grey) and for four simulated classes.
+White-noise nulls (black; only a constant \Pdot\ and the photometric noise) never exceed $D=23$ in 2{,}944
+simulations; their per-star false-alarm thresholds are $D=12.4$ (5\%), 15.6 (1\%) and 20.2 (0.1\%). Real stars have
+a long tail extending far beyond the nulls: at $D>40$ they number 691 (4.0\%) where white noise predicts none.
+Simulated orbits (blue), Blazhko modulation (orange) and large abrupt period changes (green) all populate that tail,
+so $D$ alone cannot separate orbits from intrinsic period changes.
+\item[(b) $D$ versus best period.] Each star's $D$ at the period that maximizes it. The search starts at 800\,d
+(\cref{sec:nyquist}); the vertical banding is the discreteness of the frequency grid (nearly all MACHO stars share an
+8{,}350-d baseline and hence the same grid points). Candidates (red; 81\% of them) concentrate at 2{,}500--5{,}000\,d, the range in
+which a 24-yr baseline covers about 2--4 cycles and the search is most sensitive.
+\item[(c) Amplitude versus period.] Fitted semi-amplitude $A=a_1\sin i/c$ with the edge-on LTTE amplitude for
+$M_2=0.15$, $0.5$ and $2\,\Msun$ ($M_1=0.65\,\Msun$). The solid line is the physical ceiling used in cut~5. The large cloud
+above it at long periods consists of stars whose \OC\ changes by a large fraction of a pulsation cycle --- intrinsic
+period changes far larger than any companion of $\le2\,\Msun$ can produce. Candidates lie between the $0.15$ and
+$2\,\Msun$ curves, about half (52\%) above the $0.5\,\Msun$ curve.
+\item[(d) Signal versus timing noise.] Orbit amplitude and extra jitter (fitted under $H_0$), both in units of the median
+season error. Stars with no extra jitter under $H_0$ form the column at zero. A real orbit that is not modelled under
+$H_0$ is absorbed as jitter, so strong orbits move up and to the right together; the discrete columns are the
+jitter grid. Cut 3 (dashed) removes signals that are not resolved season by season.
+\item[(e) Blazhko veto.] $\chi^2_\nu$ of the per-season amplitude factors $\alpha_j$ about their mean. A light-travel delay
+shifts the light curve without changing its amplitude ($\chi^2_\nu\approx1$), whereas Blazhko modulation changes it:
+the median $\chi^2_\nu$ is 0.97 for simulated orbits and 0.97 for nulls, but 1.8 for simulated Blazhko stars and 1.4
+for real stars. The black histogram (real, $D>40$) is shifted to large $\chi^2_\nu$: most high-$D$ real stars change
+amplitude from season to season.
+\item[(f) Cycles covered.] Baseline divided by the best period. Real stars with long best periods ($<1.5$ cycles) are
+numerous; at fewer than 1.5 cycles a sinusoid is not distinguishable from a smooth curve (cubic trend, broken line,
+random walk).
+\item[(g) Selection funnel.] Fraction of each class passing the cuts applied in sequence. Real stars (red) fall from
+4.0\% to 0.39\%; simulated orbits (broad prior, blue) from 23\% to 13.6\%; the most orbit-like nuisance, large abrupt period
+changes (green), from 64\% to 5.6\%; white-noise nulls pass none.
+\item[(h) Candidates.] Minimum companion mass (edge-on, $M_1=0.65\,\Msun$, from \cref{eq:fm}) against orbital period,
+coloured by $\log D$; dotted lines mark the three companion-mass groups suggested for the Galactic bulge by
+\citet{Hajdu2021}. This panel is descriptive: which of these are binaries is not established (\cref{sec:status}).
+\end{description}
+
+\subsection{The cuts and why}\label{sec:cuts}
+\begin{table}[h]
+\centering
+\caption{Candidate cuts, applied in order. Columns: surviving real stars (all / with MACHO), and the fraction of each
+simulated class still passing after the cut (LTTE: broad prior, $P_{\rm orb}=300$--$10^4$\,d, $M_2=0.05$--$1.5\,\Msun$).}
+\label{tab:cuts}
+\small
+\begin{tabular}{llrrrrrrr}
+\toprule
+& cut & real & LTTE & Blazhko & jump & large jump & large r.w. & null\\
+\midrule
+1 & $D>40$ & 691 / 496 & 0.230 & 0.210 & 0.031 & 0.638 & 0.077 & 0\\
+2 & $\chi^2_\nu(\alpha)<2$ & 301 / 232 & 0.227 & 0.042 & 0.029 & 0.611 & 0.062 & 0\\
+3 & $A/\sigma_{\rm season}>3$ & 294 / 225 & 0.207 & 0.041 & 0.025 & 0.604 & 0.062 & 0\\
+4 & $\ge1.5$ cycles & 88 / 71 & 0.136 & 0.041 & 0.001 & 0.068 & 0.023 & 0\\
+5 & $A<a_1/c\,(M_2=2\,\Msun)$ & \textbf{69 / 62} & 0.136 & 0.025 & 0.001 & 0.056 & 0.005 & 0\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{$D>40$.} With 17{,}492 stars, fewer than one white-noise false alarm requires a per-star false-alarm
+probability below $\sim6\times10^{-5}$, i.e.\ well beyond the largest null value ($D=23$ in 2{,}944 simulations).
+$D>40$ is chosen conservatively high because the real contaminants are not white noise; lowering it mainly admits
+more intrinsic period changes (panel a).
+\item \textbf{Amplitude constancy, $\chi^2_\nu(\alpha)<2$.} Motivated by the physics: the LTTE is a pure time shift
+(\cref{fig:lc}), so any season-to-season amplitude change points to Blazhko modulation (or changing blends). The cut
+removes 80\% of simulated Blazhko stars that passed cut 1 (0.210 $\to$ 0.042) while keeping 99\% of the orbits
+(0.230 $\to$ 0.227), and 56\% of real stars with $D>40$.
+\item \textbf{$A/\sigma_{\rm season}>3$.} The orbital amplitude must be large compared with a single season's error, so
+that the curve is seen season by season and is not only an integrated excess; this mainly guards against
+low-amplitude, high-jitter solutions and has little effect after cuts 1--2.
+\item \textbf{At least 1.5 orbital cycles.} The decisive cut against intrinsic period changes: a sinusoid fitted over
+less than about one cycle mimics a smooth trend. It removes 89\% of the large abrupt period changes (0.604 $\to$
+0.068) and 63\% of the large random walks, at the cost of a third of the simulated orbits --- those with periods longer than
+about $2/3$ of the baseline, which cannot be confirmed as periodic anyway.
+\item \textbf{Physical ceiling.} The fitted amplitude must be achievable with $M_2\le2\,\Msun$ at the fitted period
+(panel c). At this stage it removes no simulated orbits (0.136 $\to$ 0.136) but most of the remaining large random walks
+(0.023 $\to$ 0.005) and 19 real stars. Over the full sample 4.5\% of true orbits exceed the ceiling because of noise;
+the cost is measured, and the cut is applied identically to data and simulations.
+\end{enumerate}
+\noindent The cuts were set on physical grounds and on the simulations, not tuned on the real candidates. They are not
+a clean binary selection: large abrupt period changes still pass at 5.6\% and Blazhko at 2.5\% (\cref{tab:cuts}), and
+their true incidence among LMC RRab is unknown.
+
+%==============================================================================
+\section{Status}\label{sec:status}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Candidates:} 69 stars (62 with MACHO), 65 of which were also selected before the period-grid fix. Several show
+smooth \OC\ curves over two or more cycles (\cref{fig:cand}); periods 2.3--13.8\,yr (median 10.9\,yr); implied $M_{2,\min}=0.11$--$2.0\,\Msun$
+and $K_1=1.8$--$16.5\,\kms$.
+\item \textbf{Completeness} of the cuts for isotropic orbits (half eccentric), MACHO+OGLE cadence:
+$M_2=0.4$--$1.5\,\Msun$: 46\% ($P_{\rm orb}=0.8$--3\,kd), 34\% (3--10\,kd); $M_2=0.15$--$0.4\,\Msun$: 7\% and 12\%;
+$M_2<0.15\,\Msun$: $\le1\%$.
+\item \textbf{Upper limit} (all 62 MACHO candidates treated as binaries; 95\% Poisson limit 76.6 of 6{,}614 stars):
+$f<2.8\%$ for $M_2=0.4$--$1.5\,\Msun$ and $f<11\%$ for $M_2=0.15$--$0.4\,\Msun$, both at $P_{\rm orb}=1$--10\,kd.
+\item \textbf{Not yet a measurement:} the population mixture fit of the binary fraction is only weakly identified (it
+depends on the assumed nuisance shapes by a factor $\gtrsim2$). The main contaminant is large abrupt period changes.
+\end{itemize}
 
 \begin{figure}[h]
 \centering\includegraphics[width=\textwidth]{02_OGLE-LMC-RRLYR-08101.png}
-\caption{Example candidate sheet (pre-fix grid; this star's period, 4430\,d, is well above the Nyquist limit and not
-affected). A, B: delay-corrected folds (OGLE $I$, MACHO $B$) with templates. C: raw OGLE points on the rising branch in
-the seasons of maximum and minimum orbital delay, with the period change removed --- the whole waveform is shifted
-by 59\,min. D: \OC\ with the circular-orbit fit and residuals. E: $D(P_{\rm orb})$. F: season amplitudes.}
+\caption{Example candidate sheet. A, B: delay-corrected folds (OGLE $I$, MACHO $B$) with templates. C: raw OGLE points on the
+rising branch in the seasons of maximum and minimum orbital delay, with the period change removed --- the whole waveform
+is shifted by about an hour. D: \OC\ with the circular-orbit fit and residuals (error bars include the fitted jitter).
+E: $D(P_{\rm orb})$. F: season amplitudes.}
 \label{fig:cand}
 \end{figure}
 

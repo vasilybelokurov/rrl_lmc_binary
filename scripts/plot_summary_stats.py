@@ -49,7 +49,7 @@ def m2_min(f):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="results/real/oc_all_cm.parquet")
-    ap.add_argument("--sims", nargs="+", default=["results/inject/macho_big.parquet", "results/inject/macho_tail.parquet"])
+    ap.add_argument("--sims", nargs="+", default=["results/inject/macho_v2.parquet"])
     ap.add_argument("--fig", default="plots/summary_stats.png")
     a = ap.parse_args()
     r = pd.read_parquet(a.src)
@@ -57,8 +57,8 @@ def main():
     fr = cut_flags(r, "amp_s", r.baseline)
     r = r.join(fr)
     s = pd.concat([pd.read_parquet(f) for f in a.sims], ignore_index=True)
-    s = s[~s.kind.isin(["error", "real"])].copy()
-    s = s.join(cut_flags(s, "amp_best_s", 8350.0))
+    s = s[~s.kind.isin(["error", "real"])].drop(columns=["t", "tau", "err", "flag"], errors="ignore").copy()
+    s = s.join(cut_flags(s, "amp_best_s", s.baseline if "baseline" in s else 8350.0))
 
     c = r[r["all"]].copy()
     c["fM"] = mass_function(c.P_best, c.amp_s)
@@ -127,7 +127,8 @@ def main():
     steps = ["c1_D", "c2_alpha", "c3_snr", "c4_cycles", "c5_ceiling"]
     labels = ["D>40", "+α veto", "+S/N>3", "+≥1.5 cyc", "+ceiling"]
     for k, col, lab in [(None, red, "real"), ("ltte", "C0", "sim LTTE"), ("jump_big", "C2", "sim large jump"),
-                        ("blazhko", "C1", "sim Blazhko"), ("rwalk", "C4", "sim rwalk"), ("null", "k", "sim null")]:
+                        ("rwalk_big", "C5", "sim large rwalk"), ("blazhko", "C1", "sim Blazhko"), ("rwalk", "C4", "sim rwalk"),
+                        ("jump", "C8", "sim jump"), ("null", "k", "sim null")]:
         x = r if k is None else s[s.kind == k]
         m = np.ones(len(x), bool)
         fr_ = []

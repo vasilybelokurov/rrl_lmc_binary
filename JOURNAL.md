@@ -370,3 +370,15 @@ Main contaminant: large abrupt period changes (jump_big). Next: an explicit brea
   C rising branch of the orbit-extreme OGLE seasons with the period change removed (raw points; the shift equals the fitted orbit signal, e.g. 57 min for 20052);
   D O−C with circular orbit + residuals (jitter-inflated errors); E D(P); F season amplitudes α_j.
   Panel C is a visualisation (it confirms the delay is in the light curve), not a test against red phase noise.
+
+---
+
+## 2026-10-01 — Corrected-grid numbers; write-up §5 "Selection of candidates" (user request)
+- Sims v2 (`results/inject/macho_v2.parquet`: 1,472 MACHO+OGLE stars; 2 null, 2 Blazhko, 1 jump, 1 rwalk, 2 jump_big, 2 rwalk_big, 4 LTTE each; Nyquist-safe grid;
+  season series saved). `scripts/selection_numbers.py` → results/real/selection_numbers.json (replaces the earlier inline upper-limit calculation).
+- Null D thresholds (2,944 nulls): 12.4 (5%), 15.6 (1%), 20.2 (0.1%); max 23.0.
+- Funnel real (all / MACHO): 691/496 → 301/232 → 294/225 → 88/71 → **69/62**. Sim fractions after all cuts: LTTE 0.136, jump_big 0.056, Blazhko 0.025, rwalk_big 0.005, rwalk 0.003, jump 0.001, null 0.
+- Completeness: M2 0.4–1.5: 0.46 (0.8–3 kd), 0.34 (3–10 kd), 0.42 (1–10 kd); M2 0.15–0.4: 0.07, 0.12, 0.10; M2 < 0.15: ≤ 0.01.
+- Upper limit (N = 6614, k = 62, k95 = 76.6): **f < 2.8% (M2 0.4–1.5, 1–10 kd), f < 11% (M2 0.15–0.4)**, unchanged by the grid fix.
+- Candidates: P 2.3–13.8 yr (median 10.9; 81% at 2.5–5 kd); 52% above the edge-on 0.5-Msun amplitude; M2,min 0.11–2.0; K1 1.8–16.5 km/s. Sheets regenerated (plots/candidates/, 69).
+- Write-up: new §5 (panel-by-panel description of plots/summary_stats.png on a landscape page; Table 2 of cuts with per-class pass fractions; the motivation for each cut); §6 status updated with the corrected numbers. 13 pp.
