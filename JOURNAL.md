@@ -67,3 +67,56 @@ The 3000 d row reproduces the user's table (a1 = 2.10, 0.91, 0.35 AU).
 - Git repo (private GitHub `rrl_lmc_binary`?), local .venv.
 - Whether to fetch MACHO now.
 - External critique of the plan (ask-codex) before Stage 1.
+
+---
+
+## 2026-09-30 — User decisions; repo; MACHO fetch; Codex plan review; timing estimator + fail-fast test
+
+### Decisions (user)
+Public GitHub repo; fetch MACHO; external critique via ask-codex; run the OGLE pipeline while MACHO downloads.
+- Repo: https://github.com/vasilybelokurov/rrl_lmc_binary (public). Local `.venv` (Python 3.13, Dropbox-ignored), `pip install -e .`.
+
+### MACHO fetch (`scripts/fetch_macho.py`, running; log in logs/)
+- Uses the NCI TAP service, table public.photometry_view, **one query per (field, tile) restricted to `seqn IN (RRL list)`**.
+  Only RR Lyrae rows are returned; the per-tile bulk files (about 15 MB each, about 45 GB for 3038 tiles) are NOT downloaded.
+  Checked after 417 tiles: 1,251 distinct stars returned, 0 not requested. Projected size about 330 MB.
+- VOTable parsing fails (astropy rejects `character(1)` for sideofpier; the ADQL has no CAST) → CSV sync endpoint.
+- Sanity check: 3 stars fold on their OGLE periods (phase-binned scatter 0.33–0.45 → 0.22–0.26 mag in MACHO B).
+- **MACHO dateobs is MJD (not heliocentric)**: an HJD conversion is required (up to ±8.3 min), to be implemented and tested.
+- TODO (Codex #8, confirmed): validate completeness (requested vs returned IDs per tile; truncation).
+
+### Disk use (2.4 GB): .venv 0.94 GB; OGLE-IV 0.92 GB and OGLE-III 0.57 GB (each incl. its tarball, 0.19 + 0.11 GB); MACHO about 0.33 GB when done.
+
+### Timing estimator (`src/rrlbin/timing.py`; `tests/test_timing.py`, 8 pass)
+Joint fit per star/band: shared Fourier template (K = 8), a zero point per survey segment (O2/O3/O4), and per season a delay τ_j plus a mean offset.
+The coarse grid over one cycle runs in the first iteration, then Gauss–Newton; errors are Fisher × sqrt(max(χ²_ν, 1)); 4σ clipping; template ↔ τ iterations until converged.
+Tests: dm/dφ vs finite difference; amp/phase round trip; season labels; noiseless per-season delays recovered to < 0.01 s;
+noiseless 300-s LTTE sinusoid equals the (dm/dt)²-weighted within-season mean to < 3 s; a 0.3P shift found by the grid; 200 noisy realizations give pull std in (0.85, 1.1), mean < 0.05, O3/O4 zero-point offset recovered to 3 mmag.
+Bug caught by the stepwise test: the outer loop stopped as soon as the clipping mask stopped changing (0.8 s error); it now also requires max|Δτ| < 1e-7 d.
+Note: the within-season delay is a Fisher-weighted mean, so the orbit fit should use the raw epochs (Codex #3), not the season means.
+
+### Fail-fast: timing precision on 1000 random OGLE-III+IV RRab (`scripts/timing_sample.py` → results/timing_sample/rrab_1000.parquet)
+| quantity | p10 | p50 | p90 |
+|---|---|---|---|
+| seasons | 13 | 14 | 19 |
+| per-season τ error [s] | 121 | 253 | 510 |
+| best-season error [s] | 50 | 108 | 239 |
+| χ²_ν of τ_j about a quadratic (constant Ṗ) | 0.81 | 1.94 | 24.4 |
+| rms about the quadratic [s] | 143 | 399 | 1473 |
+Error vs amplitude: A_I < 0.4: 476 s; 0.4–0.6: 269 s; 0.6–0.8: 159 s; > 0.8: 113 s.
+Fraction with χ²_ν(quad) > 3: 0.34; > 10: 0.16 → **one third of RRab have timing structure beyond a constant Ṗ**
+(Blazhko, abrupt Ṗ, underestimated errors, or binaries). This population is the main confounder.
+Feasibility reading (NOT an injection result): M2 ≈ 0.6 at P ≳ 1000 d (τ ≳ 500 s) is detectable per star in many stars; 0.2 Msun at 3000 d (453 s)
+only for higher-amplitude stars (S/N ≈ 453/253 × √7 ≈ 4.7 for the median star, edge-on); 0.07 Msun is statistical only.
+
+### Codex plan review (docs/reviews/2026-09-30_codex_plan_review.md, effort high) — my verification
+| point | verdict | action |
+|---|---|---|
+| Blazhko and Ṗ injections belong in the first end-to-end test | agree | next step |
+| a common harmonic delay is not a Blazhko veto (modulation can shift the phase coherently) | plausible | compare with a free per-harmonic phase/amplitude fit |
+| season O−C cannot separate long-P orbits from a quadratic | agree | fit the raw epochs jointly; sensitivity vs P_orb |
+| survey-wide false-alarm control (max statistic over the search) | agree | full-search null simulations |
+| p_det must be conditioned on cadence, errors, shape, Blazhko, Ṗ, crowding, time system | agree | injection on real LCs |
+| MACHO fetch completeness not validated | confirmed | validator after the run |
+| MJD vs HJD | already known | implement + test |
+| precision "tens of s to 2 min" | refuted by the table above (median 253 s) | — |
