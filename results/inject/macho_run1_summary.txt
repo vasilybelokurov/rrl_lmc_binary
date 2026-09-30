@@ -1,0 +1,69 @@
+===== MACHO+OGLE (D)
+null D quantiles (per-star FAP -> threshold): {0.05: 14.3, 0.01: 18.0, 0.001: 25.8}
+
+fraction with D > D(FAP 1%) = 18.0:
+  null     N= 1168  frac=0.010  with alpha veto=0.010  median D=7.7  median jitter0=0 s  median alpha_chi2nu=0.95
+  blazhko  N= 1168  frac=0.485  with alpha veto=0.145  median D=17.4  median jitter0=381 s  median alpha_chi2nu=1.73
+  jump     N=  584  frac=0.199  with alpha veto=0.192  median D=10.6  median jitter0=25 s  median alpha_chi2nu=0.94
+  rwalk    N=  584  frac=0.312  with alpha veto=0.303  median D=13.7  median jitter0=151 s  median alpha_chi2nu=0.96
+  ltte     N= 2336  frac=0.487  with alpha veto=0.476  median D=17.3  median jitter0=151 s  median alpha_chi2nu=0.95
+  real     N=  292  frac=0.394  with alpha veto=0.247  median D=15.0  median jitter0=173 s  median alpha_chi2nu=1.43
+
+Blazhko false positives vs P_B:
+  P_B [20,100) d: N=368, frac D>D1 = 0.08, median alpha_chi2nu = 1.15
+  P_B [100,300) d: N=241, frac D>D1 = 0.15, median alpha_chi2nu = 1.45
+  P_B [300,1000) d: N=289, frac D>D1 = 0.84, median alpha_chi2nu = 4.01
+  P_B [1000,3000) d: N=270, frac D>D1 = 0.96, median alpha_chi2nu = 7.25
+
+(recovery below uses D > D1 AND alpha_chi2nu < 2.0)
+
+LTTE recovery vs amplitude / median season error (amp_s / err_med_s):
+  [0,0.5): N=430, recovered 0.01
+  [0.5,1): N=402, recovered 0.03
+  [1,2): N=504, recovered 0.41
+  [2,4): N=483, recovered 0.82
+  [4,100): N=517, recovered 0.95
+
+LTTE recovery vs P_orb and M2 (fraction; N):
+  P 300-1000 d:  M2 0.05-0.15: 0.01 (267)   M2 0.15-0.4: 0.15 (232)   M2 0.4-1.5: 0.39 (288)
+  P 1000-3000 d:  M2 0.05-0.15: 0.19 (229)   M2 0.15-0.4: 0.53 (227)   M2 0.4-1.5: 0.86 (299)
+  P 3000-10000 d:  M2 0.05-0.15: 0.28 (220)   M2 0.15-0.4: 0.72 (231)   M2 0.4-1.5: 0.91 (343)
+
+recovered, P_orb < 6000 d: |P_best/P_orb - 1| < 0.2 for 0.90 of 901
+
+real: N=292, frac D > D1 0.394, > D(0.1%) 0.240; jitter0 p50/p90 = 173/1945 s vs null p90 96 s
+figure: figures/inject_macho_run1.png
+===== OGLE only (D_O), same stars/sims
+null D quantiles (per-star FAP -> threshold): {0.05: 13.0, 0.01: 16.1, 0.001: 24.3}
+
+fraction with D > D(FAP 1%) = 16.1:
+  null     N= 1168  frac=0.010  with alpha veto=0.010  median D=6.3  median jitter0=0 s  median alpha_chi2nu=0.95
+  blazhko  N= 1168  frac=0.490  with alpha veto=0.158  median D=15.7  median jitter0=381 s  median alpha_chi2nu=1.73
+  jump     N=  584  frac=0.077  with alpha veto=0.074  median D=7.6  median jitter0=25 s  median alpha_chi2nu=0.94
+  rwalk    N=  584  frac=0.241  with alpha veto=0.236  median D=11.2  median jitter0=151 s  median alpha_chi2nu=0.96
+  ltte     N= 2336  frac=0.379  with alpha veto=0.370  median D=12.4  median jitter0=151 s  median alpha_chi2nu=0.95
+  real     N=  292  frac=0.274  with alpha veto=0.164  median D=11.4  median jitter0=173 s  median alpha_chi2nu=1.43
+
+Blazhko false positives vs P_B:
+  P_B [20,100) d: N=368, frac D>D1 = 0.13, median alpha_chi2nu = 1.15
+  P_B [100,300) d: N=241, frac D>D1 = 0.18, median alpha_chi2nu = 1.45
+  P_B [300,1000) d: N=289, frac D>D1 = 0.81, median alpha_chi2nu = 4.01
+  P_B [1000,3000) d: N=270, frac D>D1 = 0.91, median alpha_chi2nu = 7.25
+
+(recovery below uses D > D1 AND alpha_chi2nu < 2.0)
+
+LTTE recovery vs amplitude / median season error (amp_s / err_med_s):
+  [0,0.5): N=430, recovered 0.02
+  [0.5,1): N=402, recovered 0.03
+  [1,2): N=504, recovered 0.25
+  [2,4): N=483, recovered 0.63
+  [4,100): N=517, recovered 0.81
+
+LTTE recovery vs P_orb and M2 (fraction; N):
+  P 300-1000 d:  M2 0.05-0.15: 0.01 (267)   M2 0.15-0.4: 0.07 (232)   M2 0.4-1.5: 0.32 (288)
+  P 1000-3000 d:  M2 0.05-0.15: 0.10 (229)   M2 0.15-0.4: 0.44 (227)   M2 0.4-1.5: 0.77 (299)
+  P 3000-10000 d:  M2 0.05-0.15: 0.20 (220)   M2 0.15-0.4: 0.46 (231)   M2 0.4-1.5: 0.73 (343)
+
+recovered, P_orb < 6000 d: |P_best/P_orb - 1| < 0.2 for 0.71 of 739
+
+real: N=292, frac D > D1 0.274, > D(0.1%) 0.127; jitter0 p50/p90 = 173/1945 s vs null p90 96 s

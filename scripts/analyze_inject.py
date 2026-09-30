@@ -21,8 +21,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("file")
     ap.add_argument("--fig", default=None)
+    ap.add_argument("--stat", default="D", help="detection statistic column (e.g. D, or D_O for OGLE-only)")
+    ap.add_argument("--pcol", default="P_best", help="best-period column matching --stat")
+    ap.add_argument("--alpha-veto", type=float, default=2.0)
     a = ap.parse_args()
     d = pd.read_parquet(a.file)
+    d = d[d.kind != "error"].copy()
+    d["D"], d["P_best"] = d[a.stat], d[a.pcol]
     print("rows:", d.kind.value_counts().to_dict())
     null = d[d.kind == "null"]
     thr = {f: float(np.quantile(null.D, 1 - f)) for f in [0.05, 0.01, 0.001]}
@@ -32,7 +37,7 @@ def main() -> None:
     print(f"\nfraction with D > D(FAP 1%) = {D1:.1f}:")
     for k in ["null", "blazhko", "jump", "rwalk", "ltte", "real"]:
         s = d[d.kind == k]
-        print(f"  {k:8s} N={len(s):5d}  frac={np.mean(s.D > D1):.3f}  median D={s.D.median():.1f}  "
+        print(f"  {k:8s} N={len(s):5d}  frac={np.mean(s.D > D1):.3f}  with alpha veto={np.mean((s.D > D1) & (s.alpha_chi2nu < a.alpha_veto)):.3f}  median D={s.D.median():.1f}  "
               f"median jitter0={s.jit0_s.median():.0f} s  median alpha_chi2nu={s.alpha_chi2nu.median():.2f}")
 
     b = d[d.kind == "blazhko"]
@@ -43,7 +48,8 @@ def main() -> None:
               f"median alpha_chi2nu = {s.alpha_chi2nu.median():.2f}")
 
     L = d[d.kind == "ltte"].copy()
-    L["det"] = L.D > D1
+    L["det"] = (L.D > D1) & (L.alpha_chi2nu < a.alpha_veto)
+    print(f"\n(recovery below uses D > D1 AND alpha_chi2nu < {a.alpha_veto})")
     L["snr"] = L.amp_s / L.err_med_s
     print("\nLTTE recovery vs amplitude / median season error (amp_s / err_med_s):")
     for lo, hi in [(0, 0.5), (0.5, 1), (1, 2), (2, 4), (4, 100)]:

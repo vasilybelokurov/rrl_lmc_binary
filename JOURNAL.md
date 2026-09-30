@@ -208,3 +208,27 @@ of Δ(P) = −5756 P + 1562 s is non-zero, which could mean a 26-min MACHO times
 → The intercept and the 300–400 s star-to-star scatter are **physical** (a shape/period-dependent band lag), seen equally within OGLE's own time system.
 At P = 0.57 d: V−I = −1664 s vs MACHO B − OGLE I = −1652 s → **MACHO timestamps agree with OGLE to about ±50 s** (assuming MACHO blue ≈ V; not exact).
 The free offset is measured per star to 100–150 s where MACHO and OGLE-II overlap (1997–1999); elsewhere it is set by the lag relation only to ±300–400 s.
+
+---
+
+## 2026-09-30 — Injection–recovery with MACHO B + OGLE I (`scripts/inject_recover_macho.py` → results/inject/macho_run1.parquet; summary in results/inject/macho_run1_summary.txt)
+292 random RRab with OGLE-III+IV and a fetched MACHO tile (central LMC; 3,579 eligible at run time), 21 sims each; a single delay realization on the union of epochs; year seasons;
+free MACHO offset column; OGLE-only statistic D_O recorded on the same simulations. Veto: χ²_ν(α) < 2.
+| class (FAP 1% per star) | OGLE only | MACHO + OGLE |
+|---|---|---|
+| null | 0.010 | 0.010 |
+| Blazhko (with veto) | 0.158 | 0.145 |
+| jump | 0.074 | **0.192** |
+| random walk | 0.236 | 0.303 |
+| LTTE (broad prior) | 0.370 | **0.476** |
+| real (with veto) | 0.164 | **0.247** |
+LTTE recovery, MACHO + OGLE (OGLE only): M2 0.4–1.5 → 0.39 (0.32) at 0.3–1 kd, **0.86 (0.77)** at 1–3 kd, **0.91 (0.73)** at 3–10 kd;
+M2 0.15–0.4 → 0.15 (0.07), **0.53 (0.44)**, **0.72 (0.46)**; M2 0.05–0.15 → 0.01, 0.19 (0.10), 0.28 (0.20). Period accuracy (|ΔP/P| < 0.2): 0.90 vs 0.71.
+Recovery vs amp/σ: 1–2: 0.41 (0.25); 2–4: 0.82 (0.63); > 4: 0.95 (0.81).
+Reading:
+- MACHO clearly raises sensitivity, especially for long periods and the 0.2-Msun class, and pins P_orb much better.
+- The longer baseline also raises false positives from abrupt period changes (7 → 19%) and random walks (24 → 30%), and the fraction of real stars passing (16 → 25%).
+  The real passing fraction ≫ any plausible LTTE fraction (Hajdu+21 bulge candidates ≈ 0.3%) → the **real O−C noise is dominated by intrinsic, non-Keplerian period changes**.
+- The detection problem is therefore model selection between Keplerian and stochastic/abrupt period changes, and a Δχ² against a quadratic is not enough.
+  Candidate discriminators: (1) Keplerian coherence over ≥ 2 cycles, i.e. predictive tests (fit one part of the 24 yr, predict the rest);
+  (2) an explicit red-noise/jump alternative with its population fitted to the real stars (hierarchical), not arbitrary sim priors.
