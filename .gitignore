@@ -13,3 +13,10 @@ logs/
 
 # Review tooling
 .ask-codex-packet*
+docs/writeup/*.aux
+docs/writeup/*.log
+docs/writeup/*.out
+docs/writeup/*.toc
+docs/writeup/*.fls
+docs/writeup/*.fdb_latexmk
+docs/writeup/build.log

@@ -154,7 +154,7 @@ def fig_two_bands():
     x = np.linspace(0, 1, 800)
     coefB = COEF.copy()
     k = np.arange(1, 9)
-    lag = -0.034 * 2 * np.pi                                     # B leads I by 0.034 cycles (measured, Sec. pipeline)
+    lag = +0.034 * 2 * np.pi                                     # rotating phases by +k*lag moves the maximum EARLIER by 0.034 cycles
     a, b = coefB[0::2] * 1.9, coefB[1::2] * 1.9
     c, s = np.cos(k * lag), np.sin(k * lag)
     coefB[0::2], coefB[1::2] = a * c + b * s, b * c - a * s
@@ -172,7 +172,8 @@ def fig_two_bands():
     ax[1].plot(t[ogl], tr[ogl] + rng.normal(0, 150, ogl.sum()), "o", color="C0", label="OGLE I delays")
     ax[1].plot(t[mac], tr[mac] - 0.034 * P * DAY + rng.normal(0, 150, mac.sum()), "s", color="C1",
                label=f"MACHO B delays (offset −0.034 P = {-0.034 * P * DAY:.0f} s)")
-    ax[1].plot(t, tr, "k-", lw=0.8, label="true τ(t)")
+    td = np.linspace(-1000, 7400, 600)
+    ax[1].plot(td, ltte_delay(td, PORB, AMP * DAY, ECC, OMEGA, 0.0), "k-", lw=0.8, label="true τ(t)")
     ax[1].axvspan(400, 1600, color="0.9", zorder=0, label="overlap years fix the offset")
     ax[1].set(xlabel="HJD − 2450000", ylabel="O−C [s]", title="delay series: a constant band offset")
     ax[1].legend(fontsize=7)
