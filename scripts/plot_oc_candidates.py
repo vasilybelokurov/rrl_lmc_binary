@@ -5,7 +5,7 @@ ranked by amp / sqrt(err_med^2 + jit0^2) (signal relative to the total timing no
 
 Usage
 -----
-    python scripts/plot_oc_candidates.py --n 12 --fig figures/oc_candidates.png
+    python scripts/plot_oc_candidates.py --n 12 --fig plots/oc_candidates.png
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def main():
     ap.add_argument("--src", default="results/real/oc_all")
     ap.add_argument("--n", type=int, default=12)
     ap.add_argument("--D-min", type=float, default=40)
-    ap.add_argument("--fig", default="figures/oc_candidates.png")
+    ap.add_argument("--fig", default="plots/oc_candidates.png")
     a = ap.parse_args()
     d = merge_parts(a.src) if Path(a.src).is_dir() else pd.read_parquet(a.src)
     d = d[d.ok].copy()
@@ -40,7 +40,8 @@ def main():
     d["amp_max_s"] = a1sini_over_c(d.P_best.to_numpy(), 0.65, 2.0)
     c = d[(d.D > a.D_min) & (d.alpha_chi2nu < 2) & (d.snr > 3) & (d.baseline / d.P_best > 1.5) & (d.amp_s < d.amp_max_s)]
     print(f"stars {len(d)}; above physical LTTE ceiling: {(d.amp_s > d.amp_max_s).sum()}; candidates: {len(c)}")
-    c.drop(columns=["t", "tau", "err", "flag", "alpha", "alpha_err"]).to_csv(Path(a.fig).with_suffix(".csv"), index=False)
+    Path("results/candidates").mkdir(parents=True, exist_ok=True)
+    c.drop(columns=["t", "tau", "err", "flag", "alpha", "alpha_err"]).to_csv(Path("results/candidates") / (Path(a.fig).stem + ".csv"), index=False)
     c = c.sort_values("snr_tot", ascending=False).head(a.n)
     cols = ["ogle_id", "has_M", "D", "P_best", "amp_s", "err_med_s", "jit0_s", "snr_tot", "alpha_chi2nu", "pred_score"]
     print(c[cols].round(2).to_string(index=False))

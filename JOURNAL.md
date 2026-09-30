@@ -133,7 +133,7 @@ only for higher-amplitude stars (S/N ≈ 453/253 × √7 ≈ 4.7 for the median 
 - `io.py`: `mjd_to_hjd` (Mount Stromlo; ±40 s toward the LMC), `read_macho`.
 - Tests: 14 pass (timing 8, ltte 5, io 1). The LTTE amplitudes reproduce the table; the eccentric peak-to-peak matches 2A·sqrt(1 − e²cos²ω); the O−C search recovers a 600-s, 2500-d signal; the null D has the expected distribution.
 - `scripts/inject_recover.py` (300 random RRab, 21 simulations each; about 12 min on 6 cores) → results/inject/run1.parquet;
-  `scripts/analyze_inject.py` → results/inject/run1_summary.txt, figures/inject_run1.png.
+  `scripts/analyze_inject.py` → results/inject/run1_summary.txt, plots/inject_run1.png.
 
 ### Results (per-star FAP from 1200 null sims: D(5%) = 13.5, D(1%) = 17.7, D(0.1%) = 23.9)
 Fraction with D > 17.7: null 0.010; jump 0.055; rwalk 0.21; **Blazhko 0.42**; LTTE 0.29 (over the broad injected prior); **real 0.24** (D > 23.9: 0.147).
@@ -285,7 +285,7 @@ jobs are launched with `nohup caffeinate -i` (detached, idle sleep prevented). P
 
 ---
 
-## 2026-09-30 — First look at real candidates (8,000 of 17,492 stars processed; `scripts/plot_oc_candidates.py` → figures/oc_candidates_partial.png)
+## 2026-09-30 — First look at real candidates (8,000 of 17,492 stars processed; `scripts/plot_oc_candidates.py` → plots/oc_candidates_partial.png)
 Cuts: D > 40, χ²_ν(α) < 2, amp/σ_season > 3, baseline/P > 1.5 → 43 stars (0.54%); ranked by amp/sqrt(σ² + jitter²).
 - Repeated P_best values (4920, 4430 d) are **period-grid quantization** (nearly identical 8,350-d baselines give the same grid; grid spacing about 500 d near 4900 d); sims show the same.
 - Two artefacts (07273, 00870: P ≈ 370–400 d, A ≈ 8,600–12,700 s): **cycle-unwrapping failures** aliasing with annual sampling → add a flag (A > P/8).
@@ -302,12 +302,12 @@ Cuts: D > 40, χ²_ν(α) < 2, amp/σ_season > 3, baseline/P > 1.5 → 43 stars 
 ### Full run (`scripts/real_oc.py` → results/real/oc_all.parquet, 16 MB; 26 min on 6 workers)
 17,492/17,492 RRab OK; with MACHO 6,614; with the predictive test (OGLE-II overlap) 2,378. Median σ_season 226 s; median extra jitter 136 s.
 
-### Candidates (`scripts/plot_oc_candidates.py` → figures/oc_candidates.png, figures/oc_candidates.csv)
+### Candidates (`scripts/plot_oc_candidates.py` → plots/oc_candidates.png, plots/oc_candidates.csv)
 Cuts D > 40, χ²_ν(α) < 2, amp/σ > 3, ≥ 1.5 cycles, amp below the LTTE ceiling → **64 stars (0.37%)**.
 Notable: 13854 (OGLE-II overlap, predictive score +7.7, P = 4918 d, A = 1281 s); 13392 and 08275 (P ≈ 2885 d, about 3 cycles, A ≈ 350–370 s); the P ≈ 4400–5000 d group (09732, 10449, 01106, 11055, 11047, …).
 Several P ≈ 4400 d stars share a phase (09732, 20052, 10900: minima near HJD′ 1000 and 5300) → prompted the common-mode test.
 
-### Common-mode timing test (`scripts/common_mode.py` → figures/common_mode.png)
+### Common-mode timing test (`scripts/common_mode.py` → plots/common_mode.png)
 O−C residuals (after each star's quadratic + MACHO offset) stacked by year over well-behaved stars (jitter < 500 s):
 MACHO years 1992–1999: −48, +9, +19, +30, +40, +39, −67, −113 s (robust s.e. about 3 s) → a **significant common MACHO timing pattern of about 100 s**.
 OGLE: −21 … +24 s (s.e. 2–5 s). It cannot produce 1,000–2,500-s candidate signals, but it must be subtracted (per-year common-mode correction) before the final fits.
@@ -359,3 +359,14 @@ Completeness (isotropic, half eccentric): M2 0.4–1.5, P 1–10 kd: 0.40; M2 0.
 Real MACHO+OGLE stars (common-mode corrected): N = 6614, k = 60 (0.91%); 95% Poisson upper limit 74.4.
 → **f(M2 0.4–1.5 Msun, P 1–10 kd) < 2.8% (95%)**; f(M2 0.15–0.4) < 10.7%, assuming all candidates were of that class (conservative).
 Main contaminant: large abrupt period changes (jump_big). Next: an explicit break-vs-sinusoid test per candidate; light-curve discriminators; RVs.
+
+---
+
+## 2026-09-30 evening — Summary statistics and candidate sheets (user request); plots/ convention
+- **Convention (user):** all plots as PNG in `plots/` only (former figures/ moved; CSVs → results/candidates/; no PDFs).
+- `scripts/plot_summary_stats.py` → plots/summary_stats.png, results/real/candidates.csv. Funnel (all / with MACHO): D > 40: 705/504; + α veto: 306/233; + S/N > 3: 299/226;
+  + ≥ 1.5 cycles: 92/71; + ceiling: **67/60**. Sim pass fractions: LTTE 0.132, jump_big 0.072, Blazhko 0.023, rwalk 0.005, jump 0.003, rwalk_big 0.003, null 0.
+- `scripts/plot_candidate_sheets.py` → plots/candidates/NN_<id>.png (67 sheets): A/B delay-corrected folds (OGLE I, MACHO B) with templates;
+  C rising branch of the orbit-extreme OGLE seasons with the period change removed (raw points; the shift equals the fitted orbit signal, e.g. 57 min for 20052);
+  D O−C with circular orbit + residuals (jitter-inflated errors); E D(P); F season amplitudes α_j.
+  Panel C is a visualisation (it confirms the delay is in the light curve), not a test against red phase noise.

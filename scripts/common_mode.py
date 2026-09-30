@@ -4,7 +4,7 @@ residual per year; independent orbits and noise average out.
 
 Usage
 -----
-    python scripts/common_mode.py --src results/real/oc_all.parquet --fig figures/common_mode.png
+    python scripts/common_mode.py --src results/real/oc_all.parquet --fig plots/common_mode.png
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ DAY = 86400.0
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="results/real/oc_all.parquet")
-    ap.add_argument("--fig", default="figures/common_mode.png")
+    ap.add_argument("--fig", default="plots/common_mode.png")
     ap.add_argument("--null", action="store_true",
                     help="replace each star's delays by white noise (its own errors + fitted jitter): tests whether the fit alone creates a pattern")
     a = ap.parse_args()

@@ -6,7 +6,7 @@ and the real stars compared with the nulls (D, jitter). Writes a figure.
 
 Usage
 -----
-    python scripts/analyze_inject.py results/inject/run1.parquet --fig figures/inject_run1.png
+    python scripts/analyze_inject.py results/inject/run1.parquet --fig plots/inject_run1.png
 """
 from __future__ import annotations
 
