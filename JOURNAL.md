@@ -232,3 +232,18 @@ Reading:
 - The detection problem is therefore model selection between Keplerian and stochastic/abrupt period changes, and a Δχ² against a quadratic is not enough.
   Candidate discriminators: (1) Keplerian coherence over ≥ 2 cycles, i.e. predictive tests (fit one part of the 24 yr, predict the rest);
   (2) an explicit red-noise/jump alternative with its population fitted to the real stars (hierarchical), not arbitrary sim priors.
+
+---
+
+## 2026-09-30 — Predictive (out-of-sample) orbit test (`ltte.predictive_score`; results/inject/macho_pred_run1.parquet)
+Stars with OGLE-II + MACHO (1,536 eligible at run time; 292 used + 8 errors), 21 sims each. Held out: MACHO seasons before 1997 (about 5).
+Training: the rest (the MACHO offset is fixed by the 1997–1999 overlap). Score = lnL_pred(test | best training orbit) − lnL_pred(test | quadratic),
+with the parameter uncertainty in the predictive covariance. Unit test: toy orbits score higher than random walks (median > 2 and larger by > 2).
+- Detections (D > D1 = 16.8 and χ²_ν(α) < 2) with score > 2: LTTE 53%, Blazhko 37%, jump 27%, random walk 18%, null 2/12.
+- Rates over all sims (D ∧ veto ∧ score > 2): LTTE 0.274; random walk 0.074; jump 0.074; Blazhko 0.057; null 0.002; **real 0.041**.
+- LTTE retained with score > 2 (vs D ∧ veto alone): M2 0.4–1.5 → 0.19/0.45, 0.56/0.90, 0.63/0.97 for P 0.3–1, 1–3, 3–10 kd; M2 0.15–0.4 → 0.05/0.17, 0.32/0.64, 0.44/0.82.
+Reading (tested): the predictive score improves the orbit/nuisance ratio only by about 2–3×. Five held-out years carry little of the shape of multi-kd orbits.
+**No per-star cut produces a clean binary list at the LMC**: 4% of real RRab pass all cuts vs about 0.3% bulge candidates.
+→ Switch to a population mixture fit: per-star summary statistics (D, P_best, α statistic, predictive score, s, rw_rms) modelled as a mixture of
+simulated classes (null / Blazhko / jump / random walk / LTTE), with class fractions fitted to the real distribution. This requires realistic
+nuisance simulations: first match their parameter distributions to the real H0 noise fits (s, q) from the science run.
