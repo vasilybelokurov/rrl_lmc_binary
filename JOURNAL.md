@@ -152,3 +152,19 @@ Fraction with D > 17.7: null 0.010; jump 0.055; rwalk 0.21; **Blazhko 0.42**; LT
   The white-noise null is not a valid null for real stars: false-alarm control must use a realistic timing-noise model.
 - Next discriminators: (1) Keplerian shape (eccentric fit) and a sinusoid-vs-red-noise model comparison; (2) out-of-sample prediction
   (fit OGLE-III+IV, predict MACHO/OGLE-II seasons: an orbit predicts, a random walk does not); (3) Blazhko side-peaks in the light-curve spectrum; (4) per-harmonic phase coherence.
+
+### Red-noise null and period windows (same run-1 simulations)
+- `ltte.oc_search_red`: H0 and H1 with a random-walk phase covariance q·min(t_j, t_k) plus white jitter (grids over s and q); test: reduces to `oc_search` when q = 0 (15 tests pass).
+  **It does not separate random walks from orbits**: 40 random walks (800 s rms) give median D 15.8 (white null) vs 15.7 (red null); 40 LTTE (700 s) give 23.7 vs 22.0.
+  With about 14 seasonal points, a quadratic plus a sinusoid describes red phase noise as well as a random walk when P ≳ half the baseline.
+- Detections (D > 17.7 and χ²_ν(α) < 2) by best-fit period:
+  | P_best | null | jump | rwalk | Blazhko | LTTE (all injected) | real |
+  |---|---|---|---|---|---|---|
+  | 300–1500 d | 0.006 | 0.027 | 0.107 | 0.10 | 0.11 | 0.020 |
+  | 1500–2700 d | 0.000 | 0.000 | 0.010 | 0.026 | 0.058 | 0.010 |
+  | > 2700 d | 0.002 | 0.027 | 0.083 | 0.004 | 0.12 | 0.050 |
+  LTTE with M2 > 0.4 recovered in its own P window: 0.34 (300–1500), 0.53 (1500–2700), 0.58 (> 2700).
+- Reading: 1500–2700 d (about 2–3.5 cycles in OGLE-III+IV) is the cleanest window; P ≳ T/2 is degenerate with phase wander in OGLE-III+IV alone.
+  The nuisance rates depend on the assumed nuisance priors (arbitrary here), so real false-positive rates are NOT yet known.
+- **Decisive test = out-of-sample prediction**: fit an orbit to OGLE-III+IV (2001–2016), then predict the 1992–2000 MACHO/OGLE-II delays.
+  An orbit predicts; a random walk / Blazhko does not. This is why MACHO is needed; it also fixes the long-P degeneracy (baseline → 24 yr).

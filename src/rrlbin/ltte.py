@@ -97,3 +97,54 @@ def period_grid(baseline, p_min=300.0, p_max_factor=2.0, oversample=5):
     f_min, f_max = 1 / (p_max_factor * baseline), 1 / p_min
     n = int(np.ceil((f_max - f_min) * baseline * oversample)) + 1
     return 1 / np.linspace(f_max, f_min, n)
+
+
+# ------------------------------------------------------------------ red-noise (random-walk phase) null
+def _gls_lnl(X, y, C):
+    """Gaussian lnL of a GLS fit y ~ X beta with covariance C (beta at its GLS optimum)."""
+    L = np.linalg.cholesky(C)
+    Xw = np.linalg.solve(L, X)
+    yw = np.linalg.solve(L, y)
+    beta, *_ = np.linalg.lstsq(Xw, yw, rcond=None)
+    r = yw - Xw @ beta
+    return -0.5 * (r @ r) - np.sum(np.log(np.diag(L))) - 0.5 * y.size * np.log(2 * np.pi), beta
+
+
+def oc_search_red(t, tau, err, periods, s_grid=None, q_grid=None, t_ref=None):
+    """As oc_search, but H0 and H1 both include a random-walk (Wiener) phase term:
+
+        C_jk = (err_j^2 + s^2) delta_jk + q * min(t_j - t0, t_k - t0),   t0 = min(t),
+
+    with s and q profiled on grids (q in d^2/d: variance of the delay growing linearly with time).
+    The quadratic ephemeris absorbs the random walk's mean and slope. D_red = 2 max_P [lnL1 - lnL0].
+    """
+    t, tau, err = map(np.asarray, (t, tau, err))
+    if t_ref is None:
+        t_ref = np.average(t, weights=err ** -2)
+    e0 = np.median(err)
+    T = np.ptp(t)
+    if s_grid is None:
+        s_grid = np.r_[0.0, np.geomspace(0.1, 30, 12) * e0]
+    if q_grid is None:   # rms random-walk excursion over the baseline from 0.1 to 30 x the median error
+        q_grid = np.r_[0.0, (np.geomspace(0.1, 30, 12) * e0) ** 2 / T]
+    x = (t - t_ref) / 1000.0
+    X0 = np.vander(x, 3)
+    W = np.minimum.outer(t - t.min(), t - t.min())
+    Cs = [np.diag(err ** 2 + s ** 2) + q * W for s in s_grid for q in q_grid]
+    l0 = max(_gls_lnl(X0, tau, C)[0] for C in Cs)
+    Dp = np.empty(len(periods))
+    best = (-np.inf, None)
+    for k, P in enumerate(periods):
+        w = 2 * np.pi * t / P
+        X1 = np.column_stack([X0, np.sin(w), np.cos(w)])
+        l1, b1 = -np.inf, None
+        for C in Cs:
+            l, b = _gls_lnl(X1, tau, C)
+            if l > l1:
+                l1, b1 = l, b
+        Dp[k] = 2 * (l1 - l0)
+        if l1 > best[0]:
+            best = (l1, b1)
+    k = int(np.argmax(Dp))
+    b = best[1]
+    return dict(D=float(Dp[k]), P_best=float(periods[k]), amp=float(np.hypot(b[3], b[4])), Dp=Dp)

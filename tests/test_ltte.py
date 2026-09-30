@@ -45,3 +45,16 @@ def test_oc_search_recovers_signal_and_null_calibration():
     # null: D has a sensible distribution (max over periods of ~chi2_2 variables; median of order a few)
     D0 = [oc_search(t, rng.normal(0, 1, t.size) * err, err, periods)["D"] for _ in range(200)]
     assert 1 < np.median(D0) < 12 and np.percentile(D0, 99) < 30
+
+
+def test_red_search_reduces_to_white_without_random_walk():
+    """With q = 0 only, oc_search_red equals oc_search on the same jitter grid."""
+    from rrlbin.ltte import oc_search_red
+    rng = np.random.default_rng(5)
+    t = 2200 + 365.25 * np.arange(12) + rng.uniform(0, 100, 12)
+    err = np.full(t.size, 200 / 86400)
+    y = 500 / 86400 * np.sin(2 * np.pi * t / 2000) + rng.normal(0, 1, t.size) * err
+    P = period_grid(np.ptp(t))
+    s = np.r_[0, np.geomspace(0.1, 30, 12)] * 200 / 86400
+    a, b = oc_search(t, y, err, P, s_grid=s), oc_search_red(t, y, err, P, s_grid=s, q_grid=np.array([0.0]))
+    assert np.allclose(a["Dp"], b["Dp"], atol=1e-6)

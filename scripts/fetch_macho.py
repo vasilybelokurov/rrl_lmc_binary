@@ -30,7 +30,7 @@ COLS = ["fieldid", "tileid", "seqn", "obsid", "dateobs", "sideofpier", "exposure
 SELECT = ", ".join(COLS)
 
 
-def tap_csv(query: str, timeout: float = 600) -> pd.DataFrame:
+def tap_csv(query: str, timeout: float = 90) -> pd.DataFrame:
     """Synchronous TAP query returning CSV. (The VOTable route fails: astropy rejects the service's
     'character(1)' datatype of `sideofpier`, and the service's ADQL does not support CAST.)"""
     r = requests.post(f"{TAP_URL}/sync", data={"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv",
@@ -41,12 +41,16 @@ def tap_csv(query: str, timeout: float = 600) -> pd.DataFrame:
     return pd.read_csv(io.StringIO(r.text))
 
 
-def fetch_tile(field: int, tile: int, seqns: list[int], out: Path, retries: int = 4) -> int:
+def fetch_tile(field: int, tile: int, seqns: list[int], out: Path, retries: int = 2) -> int:
     q = (f"SELECT {SELECT} FROM public.photometry_view WHERE fieldid = {field} AND tileid = {tile} "
          f"AND seqn IN ({', '.join(map(str, seqns))})")
     for k in range(retries):
         try:
             df = tap_csv(q)
+            missing = sorted(set(seqns) - set(df.seqn.unique())) if len(df) else list(seqns)
+            if missing:   # completeness check (requested vs returned stars); recorded, not fatal
+                with open(out.parent / "missing_stars.txt", "a") as fh:
+                    fh.write(f"{field}.{tile}: {missing}\n")
             tmp = out.with_suffix(".tmp")
             df.to_parquet(tmp)
             tmp.rename(out)
@@ -94,6 +98,8 @@ def main() -> None:
                 print(f"{done}/{len(todo)} tiles, {nrow} rows, {dt:.0f} s, ETA {dt / done * (len(todo) - done):.0f} s",
                       flush=True)
     print(f"failed tiles: {len(failed)} {failed[:20]}")
+    with open(out / "failed_tiles.txt", "w") as fh:
+        fh.writelines(f"{f}.{t}\n" for f, t in sorted(failed))
 
 
 if __name__ == "__main__":
