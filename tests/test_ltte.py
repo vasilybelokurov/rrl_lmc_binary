@@ -88,3 +88,15 @@ def test_predictive_score_orbit_vs_random_walk():
         y = delay_random_walk(t, 800 / 86400, rng) + rng.normal(0, 1, t.size) * err
         sr.append(predictive_score(t, y, err, test)["score"])
     assert np.median(so) > 2 and np.median(so) > np.median(sr) + 2
+
+
+def test_period_grid_respects_annual_nyquist():
+    """Season delays sample ~once per year: the default grid must start above the 2-yr Nyquist period, and a
+    long-period signal must not be assigned its annual alias."""
+    assert period_grid(8000).min() >= 730
+    rng = np.random.default_rng(4)
+    t = 2300 + 365.25 * np.arange(16) + rng.uniform(0, 30, 16)
+    err = np.full(t.size, 300 / 86400)
+    y = 1050 / 86400 * np.sin(2 * np.pi * t / 3000) + rng.normal(0, 1, t.size) * err
+    r = oc_search(t, y, err, period_grid(np.ptp(t)))
+    assert abs(r["P_best"] / 3000 - 1) < 0.2

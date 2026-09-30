@@ -96,8 +96,11 @@ def oc_search(t, tau, err, periods, s_grid=None, t_ref=None, X_extra=None):
                 jit0=float(np.sqrt(s20)), jit1=float(np.sqrt(s21)), Dp=Dp)
 
 
-def period_grid(baseline, p_min=300.0, p_max_factor=2.0, oversample=5):
-    """Periods uniform in frequency from 1/(p_max_factor*baseline) to 1/p_min."""
+def period_grid(baseline, p_min=800.0, p_max_factor=2.0, oversample=5):
+    """Periods uniform in frequency from 1/(p_max_factor*baseline) to 1/p_min.
+
+    p_min = 800 d: season delays sample the O-C about once per year, so periods below the Nyquist limit (2 yr = 730 d)
+    are aliased (e.g. a 3000-d orbit reappears at 1/(1/365.25 - 1/3000) = 416 d). Shorter orbits need within-season timing."""
     f_min, f_max = 1 / (p_max_factor * baseline), 1 / p_min
     n = int(np.ceil((f_max - f_min) * baseline * oversample)) + 1
     return 1 / np.linspace(f_max, f_min, n)

@@ -63,7 +63,8 @@ def analyse(tO, mO, eO, segO, tM, mM, eM, P, T0):
     out.update(D=r["D"], P_best=r["P_best"], amp_best_s=r["amp"] * DAY, jit0_s=r["jit0"] * DAY,
                errO_med_s=float(np.median(fO.tau_err) * DAY), errM_med_s=float(np.median(fM.tau_err) * DAY),
                n_overlap=n_overlap, alpha_chi2nu=alpha_chi2(fO), alpha_chi2nu_M=alpha_chi2(fM),
-               err_med_s=float(np.median(err) * DAY))
+               err_med_s=float(np.median(err) * DAY), baseline=float(np.ptp(t)),
+               t=t, tau=tau, err=err, flag=ind[:, 0])   # season series saved: statistics can be recomputed without re-simulating
     return fO, fM, out
 
 
