@@ -1,0 +1,15 @@
+# Environment
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.DS_Store
+
+# Data: rebuilt by scripts/ (OGLE archive, MACHO TAP, WSDB)
+data/*.parquet
+data/raw/
+logs/
+
+# Review tooling
+.ask-codex-packet*

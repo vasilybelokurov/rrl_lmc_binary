@@ -1,0 +1,16 @@
+# Project dependencies — install into the local venv: .venv/bin/pip install -r requirements.txt
+numpy
+scipy
+pandas
+pyarrow
+astropy
+matplotlib
+sqlutilpy
+psycopg2-binary
+astroquery
+pyvo
+jax
+numpyro
+arviz
+pyyaml
+pytest
