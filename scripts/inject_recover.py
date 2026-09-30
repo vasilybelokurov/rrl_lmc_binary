@@ -66,6 +66,14 @@ def draw(kind, rng, t):
                  t_break=rng.uniform(lo + 0.1 * (hi - lo), hi - 0.1 * (hi - lo)))
         p["jump"] = j
         info.update(dP_over_P=j["dP_over_P"])
+    elif kind == "jump_big":   # large abrupt period changes (tail of the real O-C noise)
+        j = dict(dP_over_P=float(np.exp(rng.uniform(np.log(2e-5), np.log(2e-4)))) * rng.choice([-1, 1]),
+                 t_break=rng.uniform(lo + 0.1 * (hi - lo), hi - 0.1 * (hi - lo)))
+        p["jump"] = j
+        info.update(dP_over_P=j["dP_over_P"])
+    elif kind == "rwalk_big":  # large random-walk phase wander (tail of the real O-C noise)
+        p["rw_rms"] = float(np.exp(rng.uniform(np.log(1000), np.log(15000)))) / DAY
+        info.update(rw_rms_s=p["rw_rms"] * DAY)
     elif kind == "rwalk":
         p["rw_rms"] = float(np.exp(rng.uniform(np.log(50), np.log(1000)))) / DAY
         info.update(rw_rms_s=p["rw_rms"] * DAY)

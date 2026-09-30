@@ -334,3 +334,11 @@ period changes (25%). It is legitimate only as a cut applied identically to sims
   red-noise H0 and the predictive score (4.3 min, 6 workers). Remaining MACHO common mode after one pass: −15 … +4 s. Median per-star correction rms 11.7 s.
 - Candidates (same cuts): 64 → 67; 62 in common, 2 lost, 5 new; for the common ones median |ΔP/P| = 0.000, amplitude ratio 1.001, D ratio 0.999 → **candidate list robust to the common mode**.
 - The sims contain no common mode by construction → the corrected data and the sims are consistent. Robust unwrapping (cycle slips) is deferred to the next simulation round so that both pipelines stay identical.
+
+### Real vs simulated timing noise; extended nuisance classes; a propagation bug
+- Jitter under H0 [s], p50/p75/p90/p97: real MACHO stars 144/564/**1594/3811**; sims: rwalk 169/384/641/840, Blazhko 388/657/978/1250, jump 31/129/217/311, null 0/27/94/193.
+  About 15% of real stars are noisier than any simulated nuisance → a mixture fit would push them into the broad LTTE class (the catch-all bias seen in the mock tests).
+- New classes in `inject_recover.draw`: `rwalk_big` (rms logU 1000–15000 s) and `jump_big` (|ΔP/P| logU 2e-5–2e-4), matching the large period changes found in the ceiling diagnostics.
+  Tail run: 400 MACHO+OGLE stars × (3 + 3) → results/inject/macho_tail.parquet.
+- **Bug:** `--per-class` was ignored because macOS multiprocessing spawns workers, which re-import the module defaults. Fixed by passing the dict in each job.
+  Consequence: macho_big runs the default 20 sims per star (not 10). The results are valid, just larger and slower.

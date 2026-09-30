@@ -68,7 +68,7 @@ def analyse(tO, mO, eO, segO, tM, mM, eM, P, T0):
 
 
 def one_star(args):
-    oid, mid, P, T0, ra, dec, seed = args
+    oid, mid, P, T0, ra, dec, seed, per_class = args   # per_class passed explicitly: spawned workers re-import defaults
     rng = np.random.default_rng(seed)
     out = []
     try:
@@ -80,7 +80,7 @@ def one_star(args):
         zpO, zpM = dict(zip(fO.seg_names, fO.zp)), dict(zip(fM.seg_names, fM.zp))
         nsO, nsM = np.sqrt(max(fO.chi2nu, 1.0)), np.sqrt(max(fM.chi2nu, 1.0))
         t_all = np.r_[tO, tM]
-        for kind, n in N_PER_CLASS.items():
+        for kind, n in per_class.items():
             for _ in range(n):
                 p, info = draw(kind, rng, t_all)
                 tau, A = delay_and_amplitude(t_all, P, rng, **p)
@@ -103,9 +103,10 @@ def main() -> None:
     ap.add_argument("--per-class", default=None, help="sims per class, e.g. null=2,blazhko=2,jump=1,rwalk=1,ltte=4")
     ap.add_argument("--require-o2", action="store_true", help="only stars with OGLE-II epochs (for the predictive test)")
     a = ap.parse_args()
+    per_class = dict(N_PER_CLASS)
     if a.per_class:
-        N_PER_CLASS.clear()
-        N_PER_CLASS.update({k: int(v) for k, v in (x.split("=") for x in a.per_class.split(","))})
+        per_class = {k: int(v) for k, v in (x.split("=") for x in a.per_class.split(","))}
+    print("sims per class:", per_class, flush=True)
     inv = pd.read_parquet("data/lc_inventory.parquet")
     ident = read_ogle4_ident("data/raw/ogle4_lmc_rrlyr/ident.dat")[["ogle_id", "ra", "dec"]]
     par = pd.read_fwf("data/raw/ogle4_lmc_rrlyr/RRab.dat", colspecs=[(0, 20), (37, 46), (58, 68)],
@@ -117,7 +118,7 @@ def main() -> None:
     s = s.merge(par, on="ogle_id").merge(ident, on="ogle_id")
     print(f"eligible stars (tile fetched): {len(s)}", flush=True)
     s = s.sample(n=min(a.n_stars, len(s)), random_state=a.seed)
-    jobs = [(o, mi, float(P), float(T0), ra, de, a.seed * 100000 + k)
+    jobs = [(o, mi, float(P), float(T0), ra, de, a.seed * 100000 + k, per_class)
             for k, (o, mi, P, T0, ra, de) in enumerate(zip(s.ogle_id, s.macho_id, s.P, s.T0, s.ra, s.dec))]
     parts = Path(a.out).with_suffix("")
     chunked.run_chunked(one_star, jobs, parts, workers=a.workers, chunk=60, flatten=True)
