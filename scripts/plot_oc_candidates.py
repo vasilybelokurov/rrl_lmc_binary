@@ -20,7 +20,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from chunked import merge_parts  # noqa: E402
-from rrlbin.ltte import _profile_lnl  # noqa: E402
+from rrlbin.ltte import _profile_lnl, a1sini_over_c  # noqa: E402
 
 DAY = 86400.0
 
@@ -36,7 +36,11 @@ def main():
     d = d[d.ok].copy()
     d["snr"] = d.amp_s / d.err_med_s
     d["snr_tot"] = d.amp_s / np.hypot(d.err_med_s, d.jit0_s)
-    c = d[(d.D > a.D_min) & (d.alpha_chi2nu < 2) & (d.snr > 3) & (d.baseline / d.P_best > 1.5)]
+    # physical ceiling: an LTTE amplitude cannot exceed a1/c for M1 = 0.65 and M2 = 2 Msun at the fitted period
+    d["amp_max_s"] = a1sini_over_c(d.P_best.to_numpy(), 0.65, 2.0)
+    c = d[(d.D > a.D_min) & (d.alpha_chi2nu < 2) & (d.snr > 3) & (d.baseline / d.P_best > 1.5) & (d.amp_s < d.amp_max_s)]
+    print(f"stars {len(d)}; above physical LTTE ceiling: {(d.amp_s > d.amp_max_s).sum()}; candidates: {len(c)}")
+    c.drop(columns=["t", "tau", "err", "flag", "alpha", "alpha_err"]).to_csv(Path(a.fig).with_suffix(".csv"), index=False)
     c = c.sort_values("snr_tot", ascending=False).head(a.n)
     cols = ["ogle_id", "has_M", "D", "P_best", "amp_s", "err_med_s", "jit0_s", "snr_tot", "alpha_chi2nu", "pred_score"]
     print(c[cols].round(2).to_string(index=False))

@@ -294,3 +294,35 @@ Cuts: D > 40, χ²_ν(α) < 2, amp/σ_season > 3, baseline/P > 1.5 → 43 stars 
   10449: 12.1 yr, 2.4 AU, 0.094, 0.50; 11047: 12.0 yr, 2.2 AU, 0.078, 0.46; 09732: 12.1 yr, 5.0 AU, 0.87, 1.68 (K1 12.4 km/s); 02150: 13.7 yr, 1.9 AU, 0.035, 0.32; 08205: 12.0 yr, 1.0 AU, 0.006, 0.16.
 - NOT claimed as detections: P ≈ T/2, where red phase noise mimics about 2 cycles (rwalk FP 30% in sims); the MACHO offset is free (no OGLE-II → no predictive test);
   the 0.5% rate needs population calibration. Confirmation routes: RVs (K1 4–12 km/s over about 12 yr, after removing the pulsation RV), post-2016 OGLE-IV seasons (predicted turn-over), mixture fit with realistic red noise.
+
+---
+
+## 2026-09-30 — Full real-data run; candidates; common mode; the amplitude ceiling examined
+
+### Full run (`scripts/real_oc.py` → results/real/oc_all.parquet, 16 MB; 26 min on 6 workers)
+17,492/17,492 RRab OK; with MACHO 6,614; with the predictive test (OGLE-II overlap) 2,378. Median σ_season 226 s; median extra jitter 136 s.
+
+### Candidates (`scripts/plot_oc_candidates.py` → figures/oc_candidates.png, figures/oc_candidates.csv)
+Cuts D > 40, χ²_ν(α) < 2, amp/σ > 3, ≥ 1.5 cycles, amp below the LTTE ceiling → **64 stars (0.37%)**.
+Notable: 13854 (OGLE-II overlap, predictive score +7.7, P = 4918 d, A = 1281 s); 13392 and 08275 (P ≈ 2885 d, about 3 cycles, A ≈ 350–370 s); the P ≈ 4400–5000 d group (09732, 10449, 01106, 11055, 11047, …).
+Several P ≈ 4400 d stars share a phase (09732, 20052, 10900: minima near HJD′ 1000 and 5300) → prompted the common-mode test.
+
+### Common-mode timing test (`scripts/common_mode.py` → figures/common_mode.png)
+O−C residuals (after each star's quadratic + MACHO offset) stacked by year over well-behaved stars (jitter < 500 s):
+MACHO years 1992–1999: −48, +9, +19, +30, +40, +39, −67, −113 s (robust s.e. about 3 s) → a **significant common MACHO timing pattern of about 100 s**.
+OGLE: −21 … +24 s (s.e. 2–5 s). It cannot produce 1,000–2,500-s candidate signals, but it must be subtracted (per-year common-mode correction) before the final fits.
+Caveat: part of the pattern may come from the per-star quadratic + offset removal (to be tested on simulations, where no common mode exists).
+
+### The amplitude ceiling (user concern: "what causes it — we need to establish that") (`scripts/ceiling_diagnostics.py` → results/real/ceiling_diag.parquet)
+Ceiling = a1/c for M1 = 0.65, M2 = 2 Msun, edge-on, at the fitted period. Real stars above it: 5,309 (30.4%). Dominant cause:
+| cause | share | median D | P_best | amp vs ceiling | jitter |
+|---|---|---|---|---|---|
+| short_P (P_best < 1000 d; noise fit) | 61.8% | 13.2 (below D1) | 368 d | 1095 vs 524 s | 483 s |
+| large_pc (O−C range > P/4) | 12.6% | 30.0 | 4022 d | 4994 vs 2579 s | 2500 s |
+| other (P_best at the grid edge, about 10⁴ d; trend beyond a quadratic) | 12.3% | 20.1 | 10257 d | 8387 vs 4815 s | 834 s |
+| boundary jump at MACHO→OGLE | 7.6% | 25.2 | 2262 d | 3318 vs 1758 s | 1596 s |
+| cycle slip (|Δτ| > 0.35 P between seasons) | 5.8% | 20.5 | 2330 d | 8707 vs 1792 s | 5270 s |
+Fraction above vs P_best: 0.39 (300–600 d), 0.16, 0.13, 0.20, 0.41 (> 4000 d).
+Simulations (same pipeline): null 3.5%, LTTE 4.5% (all with true amplitude below the ceiling, i.e. estimator overshoot), jump 5.3%, rwalk 15%, **Blazhko 30%**; 'real' rows 21%.
+**Conclusion:** the ceiling excludes 4.5% of true LTTE (a measured completeness loss) and is otherwise dominated by insignificant short-P noise fits (62%) and genuine large intrinsic
+period changes (25%). It is legitimate only as a cut applied identically to sims and data (in the mixture), not as a pre-filter. Cycle slips (6%) are a pipeline issue → robust unwrapping to do.
