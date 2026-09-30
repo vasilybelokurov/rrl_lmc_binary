@@ -282,3 +282,15 @@ while the job was paused (not a slowdown; my thread-oversubscription guess was w
 Fix: `scripts/chunked.py`, a resumable chunked parallel map (part files per chunk, progress line per chunk, single-threaded BLAS in the workers);
 jobs are launched with `nohup caffeinate -i` (detached, idle sleep prevented). Profile: 1.2 s per MACHO+OGLE star single-core
 (fit_timing 53%, MJD→HJD 28%, O−C search 17%). Full run: about 24 s per 500 stars on 6 workers.
+
+---
+
+## 2026-09-30 — First look at real candidates (8,000 of 17,492 stars processed; `scripts/plot_oc_candidates.py` → figures/oc_candidates_partial.png)
+Cuts: D > 40, χ²_ν(α) < 2, amp/σ_season > 3, baseline/P > 1.5 → 43 stars (0.54%); ranked by amp/sqrt(σ² + jitter²).
+- Repeated P_best values (4920, 4430 d) are **period-grid quantization** (nearly identical 8,350-d baselines give the same grid; grid spacing about 500 d near 4900 d); sims show the same.
+- Two artefacts (07273, 00870: P ≈ 370–400 d, A ≈ 8,600–12,700 s): **cycle-unwrapping failures** aliasing with annual sampling → add a flag (A > P/8).
+- About 8 stars show smooth, near-sinusoidal O−C over about 2 cycles, with MACHO (1992–99) and OGLE (2001–16) joining consistently; the phases differ between stars (no common systematic).
+  As LTTE (M1 = 0.65, edge-on): 01106 P = 13.6 yr, a1 sin i = 3.1 AU, f(M) = 0.16, M2,min = 0.65, K1 = 6.8 km/s; 11055: 13.5 yr, 2.6 AU, 0.094, 0.50;
+  10449: 12.1 yr, 2.4 AU, 0.094, 0.50; 11047: 12.0 yr, 2.2 AU, 0.078, 0.46; 09732: 12.1 yr, 5.0 AU, 0.87, 1.68 (K1 12.4 km/s); 02150: 13.7 yr, 1.9 AU, 0.035, 0.32; 08205: 12.0 yr, 1.0 AU, 0.006, 0.16.
+- NOT claimed as detections: P ≈ T/2, where red phase noise mimics about 2 cycles (rwalk FP 30% in sims); the MACHO offset is free (no OGLE-II → no predictive test);
+  the 0.5% rate needs population calibration. Confirmation routes: RVs (K1 4–12 km/s over about 12 yr, after removing the pulsation RV), post-2016 OGLE-IV seasons (predicted turn-over), mixture fit with realistic red noise.
