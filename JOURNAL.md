@@ -196,3 +196,15 @@ RRab with OGLE-II epochs and a MACHO ID, in fetched tiles: 1,021 fitted; overlap
 ### Next
 When the fetch completes: rerun the calibration on all tiles; add a per-star MACHO offset column (constrained by the overlap years) to the O−C search;
 rerun injection–recovery with MACHO+OGLE cadences (24-yr baseline) and test out-of-sample prediction (orbit fitted on 1997–2016 → predict 1992–1996).
+
+### Is the MACHO–OGLE time offset worrying? Control: OGLE V − I (same time system) (`scripts/band_lag_ogle_vi.py` → results/macho/lag_ogle_vi.parquet)
+User question: why a free MACHO–OGLE delay offset, and is it worrying? Answer: delays are template-based, and the fiducial (fundamental phase)
+falls at a slightly different time in each band (the band phase lag), plus any timestamp convention offset. The worry was that the intercept
+of Δ(P) = −5756 P + 1562 s is non-zero, which could mean a 26-min MACHO timestamp error.
+| relation | median lag [cycles] | slope [s/d] | intercept [s] | robust scatter |
+|---|---|---|---|---|
+| OGLE V − OGLE I (N = 336) | −0.0353 (sd 0.0115) | −6497 ± 277 | +2039 ± 151 | 405 s (err 107) |
+| MACHO B − OGLE I (N = 781) | −0.0336 (sd 0.0081) | −5663 ± 214 | +1576 ± 115 | 327 s (err 127) |
+→ The intercept and the 300–400 s star-to-star scatter are **physical** (a shape/period-dependent band lag), seen equally within OGLE's own time system.
+At P = 0.57 d: V−I = −1664 s vs MACHO B − OGLE I = −1652 s → **MACHO timestamps agree with OGLE to about ±50 s** (assuming MACHO blue ≈ V; not exact).
+The free offset is measured per star to 100–150 s where MACHO and OGLE-II overlap (1997–1999); elsewhere it is set by the lag relation only to ±300–400 s.

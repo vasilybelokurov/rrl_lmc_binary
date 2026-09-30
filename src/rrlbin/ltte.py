@@ -60,11 +60,12 @@ def _profile_lnl(X, y, var, s2_grid):
     return best
 
 
-def oc_search(t, tau, err, periods, s_grid=None, t_ref=None):
+def oc_search(t, tau, err, periods, s_grid=None, t_ref=None, X_extra=None):
     """Circular-orbit LTTE search on season delays with a quadratic ephemeris term and free jitter.
 
     H0: tau = c0 + c1 x + c2 x^2;  H1: H0 + A sin(2 pi t/P) + B cos(2 pi t/P); both with variance err^2 + s^2,
-    s profiled on s_grid. x = (t - t_ref)/1000 d.
+    s profiled on s_grid. x = (t - t_ref)/1000 d. X_extra: optional extra nuisance columns (n, q) in both
+    hypotheses, e.g. an indicator of MACHO seasons for a free MACHO-OGLE delay offset.
 
     Returns dict with D = 2 max_P [lnL1(P) - lnL0], best period, semi-amplitude, jitter under H0/H1, and D(P).
     """
@@ -76,6 +77,9 @@ def oc_search(t, tau, err, periods, s_grid=None, t_ref=None):
     s2 = s_grid ** 2
     x = (t - t_ref) / 1000.0
     X0 = np.vander(x, 3)
+    if X_extra is not None:
+        X0 = np.column_stack([X0, X_extra])
+    nq = X0.shape[1]
     var = err ** 2
     l0, s20, _ = _profile_lnl(X0, tau, var, s2)
     Dp = np.empty(len(periods))
@@ -88,7 +92,7 @@ def oc_search(t, tau, err, periods, s_grid=None, t_ref=None):
         fits.append((s21, b))
     k = int(np.argmax(Dp))
     s21, b = fits[k]
-    return dict(D=float(Dp[k]), P_best=float(periods[k]), amp=float(np.hypot(b[3], b[4])),
+    return dict(D=float(Dp[k]), P_best=float(periods[k]), amp=float(np.hypot(b[nq], b[nq + 1])),
                 jit0=float(np.sqrt(s20)), jit1=float(np.sqrt(s21)), Dp=Dp)
 
 

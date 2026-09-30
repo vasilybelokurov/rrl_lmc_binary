@@ -35,9 +35,9 @@ def delay_random_walk(t, rms_over_baseline, rng):
     return np.interp(t, ts, w)
 
 
-def simulate_lc(t, err, seg, coef, zp_by_seg, P, T0, rng, noise_scale=1.0,
-                pdot=0.0, t_ref=5000.0, blazhko=None, jump=None, rw_rms=0.0, ltte=None):
-    """Simulate magnitudes at the real epochs t.
+def delay_and_amplitude(t, P, rng, pdot=0.0, t_ref=5000.0, blazhko=None, jump=None, rw_rms=0.0, ltte=None):
+    """Total delay tau(t) [d] and amplitude factor A(t) at epochs t (evaluate once on all surveys' epochs together,
+    so that every survey sees the same realization).
 
     blazhko : dict(P_B, eps_A, eps_phi [cycles], psi_A, psi_phi) or None
     jump    : dict(dP_over_P, t_break) or None
@@ -56,6 +56,16 @@ def simulate_lc(t, err, seg, coef, zp_by_seg, P, T0, rng, noise_scale=1.0,
         tau = tau + delay_random_walk(t, rw_rms, rng)
     if ltte is not None:
         tau = tau + ltte_delay(t, **ltte)
+    return tau, A
+
+
+def simulate_lc(t, err, seg, coef, zp_by_seg, P, T0, rng, noise_scale=1.0, tau=None, A=None, **delay_kw):
+    """Simulate magnitudes at the real epochs t: zp + A T((t - tau - T0)/P) + noise.
+    Either pass tau (and A) precomputed with delay_and_amplitude, or the keyword arguments of that function."""
+    if tau is None:
+        tau, A = delay_and_amplitude(t, P, rng, **delay_kw)
+    if A is None:
+        A = np.ones_like(t)
     zp = np.array([zp_by_seg[s] for s in seg])
     m = zp + A * fourier_eval(coef, (t - tau - T0) / P)
     return m + rng.normal(0, 1, t.size) * err * noise_scale, tau

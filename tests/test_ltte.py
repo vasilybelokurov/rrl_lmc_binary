@@ -58,3 +58,16 @@ def test_red_search_reduces_to_white_without_random_walk():
     s = np.r_[0, np.geomspace(0.1, 30, 12)] * 200 / 86400
     a, b = oc_search(t, y, err, P, s_grid=s), oc_search_red(t, y, err, P, s_grid=s, q_grid=np.array([0.0]))
     assert np.allclose(a["Dp"], b["Dp"], atol=1e-6)
+
+
+def test_oc_search_free_offset_column():
+    """A constant offset on a subset of seasons (e.g. MACHO vs OGLE) is absorbed by an indicator column, and the
+    signal is still recovered; without the column, the offset biases the search."""
+    rng = np.random.default_rng(11)
+    t = 450 + 365.25 * np.arange(20) - 5 * 365.25 + rng.uniform(0, 100, 20)   # 1992-2011-like
+    macho = t < 1600
+    err = np.full(t.size, 150 / 86400)
+    y = 600 / 86400 * np.sin(2 * np.pi * t / 2200 + 0.3) + np.where(macho, 2000 / 86400, 0) + rng.normal(0, 1, t.size) * err
+    P = period_grid(np.ptp(t))
+    r = oc_search(t, y, err, P, X_extra=macho.astype(float)[:, None])
+    assert abs(r["P_best"] / 2200 - 1) < 0.1 and abs(r["amp"] * 86400 - 600) < 200
