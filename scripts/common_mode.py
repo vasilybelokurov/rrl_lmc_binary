@@ -27,12 +27,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="results/real/oc_all.parquet")
     ap.add_argument("--fig", default="figures/common_mode.png")
+    ap.add_argument("--null", action="store_true",
+                    help="replace each star's delays by white noise (its own errors + fitted jitter): tests whether the fit alone creates a pattern")
     a = ap.parse_args()
+    rng = np.random.default_rng(0)
     d = pd.read_parquet(a.src)
     d = d[d.ok & (d.jit0_s < 500)]           # well-behaved stars only
     rows = []
     for _, r in d.iterrows():
         t, tau, err, flag = map(np.asarray, (r.t, r.tau, r.err, r.flag))
+        if a.null:
+            tau = rng.normal(0, 1, t.size) * np.sqrt(err ** 2 + (r.jit0_s / DAY) ** 2)
         X = np.vander((t - t.mean()) / 1000.0, 3)
         if flag.any():
             X = np.column_stack([X, flag])

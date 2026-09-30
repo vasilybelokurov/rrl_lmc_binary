@@ -326,3 +326,11 @@ Fraction above vs P_best: 0.39 (300–600 d), 0.16, 0.13, 0.20, 0.41 (> 4000 d).
 Simulations (same pipeline): null 3.5%, LTTE 4.5% (all with true amplitude below the ceiling, i.e. estimator overshoot), jump 5.3%, rwalk 15%, **Blazhko 30%**; 'real' rows 21%.
 **Conclusion:** the ceiling excludes 4.5% of true LTTE (a measured completeness loss) and is otherwise dominated by insignificant short-P noise fits (62%) and genuine large intrinsic
 period changes (25%). It is legitimate only as a cut applied identically to sims and data (in the mixture), not as a pre-filter. Cycle slips (6%) are a pipeline issue → robust unwrapping to do.
+
+### Common mode is real; correction applied (`scripts/common_mode.py --null`; `scripts/reanalyse_oc.py` → results/real/oc_all_cm.parquet)
+- Null test (white-noise delays at the real epochs, errors and flags; same stacking): all years consistent with 0 (|median| ≲ 4 s, s.e. 2–3 s) →
+  the MACHO −113 … +40 s pattern and the OGLE +10 … +24 s (2006–2008) drift are **real common timing systematics**, not fit artefacts.
+- Correction: subtract the per-(survey, year) median residual (≥ 100 stars per bin) from every star, then recompute D, P, amplitude, jitter,
+  red-noise H0 and the predictive score (4.3 min, 6 workers). Remaining MACHO common mode after one pass: −15 … +4 s. Median per-star correction rms 11.7 s.
+- Candidates (same cuts): 64 → 67; 62 in common, 2 lost, 5 new; for the common ones median |ΔP/P| = 0.000, amplitude ratio 1.001, D ratio 0.999 → **candidate list robust to the common mode**.
+- The sims contain no common mode by construction → the corrected data and the sims are consistent. Robust unwrapping (cycle slips) is deferred to the next simulation round so that both pipelines stay identical.
