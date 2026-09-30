@@ -82,7 +82,7 @@ Public GitHub repo; fetch MACHO; external critique via ask-codex; run the OGLE p
   Checked after 417 tiles: 1,251 distinct stars returned, 0 not requested. Projected size about 330 MB.
 - VOTable parsing fails (astropy rejects `character(1)` for sideofpier; the ADQL has no CAST) → CSV sync endpoint.
 - Sanity check: 3 stars fold on their OGLE periods (phase-binned scatter 0.33–0.45 → 0.22–0.26 mag in MACHO B).
-- **MACHO dateobs is MJD (not heliocentric)**: an HJD conversion is required (up to ±8.3 min), to be implemented and tested.
+- **MACHO dateobs is MJD (not heliocentric)** → `rrlbin.io.mjd_to_hjd`. Toward the LMC (ecliptic latitude ≈ −85°) the correction is only ±40 s (tested), not the ±8.3 min on the ecliptic I first quoted. Start vs mid-exposure is undocumented → calibrate against OGLE-II.
 - TODO (Codex #8, confirmed): validate completeness (requested vs returned IDs per tile; truncation).
 
 ### Disk use (2.4 GB): .venv 0.94 GB; OGLE-IV 0.92 GB and OGLE-III 0.57 GB (each incl. its tarball, 0.19 + 0.11 GB); MACHO about 0.33 GB when done.
@@ -120,3 +120,35 @@ only for higher-amplitude stars (S/N ≈ 453/253 × √7 ≈ 4.7 for the median 
 | MACHO fetch completeness not validated | confirmed | validator after the run |
 | MJD vs HJD | already known | implement + test |
 | precision "tens of s to 2 min" | refuted by the table above (median 253 s) | — |
+
+---
+
+## 2026-09-30 — Injection–recovery on real OGLE cadences (run 1)
+
+### Code
+- `timing.py`: each season now also fits an amplitude scale α_j (Blazhko/blend diagnostic). The season epoch is the Fisher-weighted time.
+- `ltte.py`: Irwin delay (Kepler solver), a1 sin i / c, mass function; `oc_search` = quadratic + circular sinusoid on a frequency grid
+  (300 d … 2 × baseline, oversampling 5), jitter s profiled under H0 and H1; statistic D = 2 max_P ΔlnL.
+- `simulate.py`: light curves on real epochs/errors from each star's fitted template: Ṗ, Blazhko (coherent phase + amplitude modulation), abrupt ΔP/P, random-walk phase, LTTE.
+- `io.py`: `mjd_to_hjd` (Mount Stromlo; ±40 s toward the LMC), `read_macho`.
+- Tests: 14 pass (timing 8, ltte 5, io 1). The LTTE amplitudes reproduce the table; the eccentric peak-to-peak matches 2A·sqrt(1 − e²cos²ω); the O−C search recovers a 600-s, 2500-d signal; the null D has the expected distribution.
+- `scripts/inject_recover.py` (300 random RRab, 21 simulations each; about 12 min on 6 cores) → results/inject/run1.parquet;
+  `scripts/analyze_inject.py` → results/inject/run1_summary.txt, figures/inject_run1.png.
+
+### Results (per-star FAP from 1200 null sims: D(5%) = 13.5, D(1%) = 17.7, D(0.1%) = 23.9)
+Fraction with D > 17.7: null 0.010; jump 0.055; rwalk 0.21; **Blazhko 0.42**; LTTE 0.29 (over the broad injected prior); **real 0.24** (D > 23.9: 0.147).
+- Blazhko false positives vs P_B: 12% (20–100 d), 13% (100–300), **65% (300–1000), 84% (1000–3000)**. Long-period modulation mimics LTTE.
+- The amplitude diagnostic separates them: median χ²_ν(α_j) = 3.3 / 6.8 for P_B = 300–1000 / 1000–3000 d vs 0.96 for LTTE and nulls.
+  With the veto χ²_ν(α) < 2, Blazhko FP falls 0.42 → 0.13, LTTE recovery is essentially unchanged (0.294 → 0.288; 0.68 → 0.68 for M2 > 0.4, P > 1000 d), and **real 0.24 → 0.08**.
+- LTTE recovery (FAP 1%, isotropic inclination, M1 = 0.65, half eccentric) vs amp/σ_season: < 1: ≤ 2%; 1–2: 19%; 2–4: 60%; > 4: 80%.
+  vs (P_orb, M2): M2 0.4–1.5: 25% (300–1000 d), 70% (1–3 kd), 67% (3–10 kd); M2 0.15–0.4: 4%, 28%, 35%; M2 0.05–0.15: 0–10%.
+  Recovered orbits with P < 6000 d: 74% have |P_best/P − 1| < 0.2. The practical threshold is a1 sin i / c ≳ 500–700 s (figure, middle panel).
+- Real stars: jitter under H0 p50/p90 = 125/1636 s vs null p90 159 s → **real timing noise has a heavy tail not in the white-noise nulls.**
+
+### Interpretation (tested vs not)
+- Sensitivity: roughly Hajdu+21-like companions (≳ 0.4 Msun, 1–10 kd) are recoverable in about 70% of cases; the 0.2-Msun group about 30%; the 0.067-Msun group is not reachable per star.
+- **8% of real RRab still pass D and the α veto**, vs 0.3% bulge candidates in Hajdu+21 (87/27,480). The real excess is therefore dominated by
+  timing nuisances that the α veto does not catch (phase-only modulation, random-walk phase, abrupt changes), not by binaries.
+  The white-noise null is not a valid null for real stars: false-alarm control must use a realistic timing-noise model.
+- Next discriminators: (1) Keplerian shape (eccentric fit) and a sinusoid-vs-red-noise model comparison; (2) out-of-sample prediction
+  (fit OGLE-III+IV, predict MACHO/OGLE-II seasons: an orbit predicts, a random walk does not); (3) Blazhko side-peaks in the light-curve spectrum; (4) per-harmonic phase coherence.

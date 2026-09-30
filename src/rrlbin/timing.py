@@ -74,9 +74,12 @@ class TimingFit:
     zp: np.ndarray              # zero point per segment
     seg_names: np.ndarray
     season: np.ndarray          # unique season labels
-    t_season: np.ndarray        # mean epoch of each season
+    t_season: np.ndarray        # Fisher-weighted epoch of each season's delay
     tau: np.ndarray             # delay per season [d]
     tau_err: np.ndarray         # scaled Fisher error [d]
+    alpha: np.ndarray           # amplitude scale per season (1 = template amplitude)
+    alpha_err: np.ndarray
+    dm: np.ndarray              # mean-magnitude offset per season
     chi2nu_season: np.ndarray
     n_season: np.ndarray
     seg_season: np.ndarray      # segment of each season
@@ -95,29 +98,35 @@ def _template_fit(t, m, w, seg_idx, nseg, tau_ep, P, T0, K):
     return beta[:nseg], beta[nseg:]
 
 
-def _season_shift(t, m, w, zp_ep, coef, P, T0, tau0, n_iter=8, grid=True):
-    """Gauss-Newton fit of (tau, dm) for one season at a fixed template. Returns tau, dm, Fisher var of tau, chi2."""
+def _season_shift(t, m, w, zp_ep, coef, P, T0, tau0, n_iter=10, grid=True):
+    """Gauss-Newton fit of (tau, dm, alpha) for one season at a fixed template:
+    m = zp + dm + alpha * T((t - tau - T0)/P). alpha (amplitude scale) is a Blazhko/blending diagnostic.
+
+    Returns dict: tau, dm, alpha, var_tau, var_alpha, chi2, t_eff (Fisher-weighted epoch of the delay)."""
     if grid:  # coarse global search over one full cycle, to avoid wrong local minima
         taus = tau0 + P * np.linspace(-0.5, 0.5, 101)[:-1]
-        chi = [np.sum(w * (m - zp_ep - fourier_eval(coef, (t - x - T0) / P) ) ** 2) for x in taus]
+        chi = [np.sum(w * (m - zp_ep - fourier_eval(coef, (t - x - T0) / P)) ** 2) for x in taus]
         tau0 = taus[int(np.argmin(chi))]
-    tau, dm = tau0, 0.0
+    p = np.array([tau0, 0.0, 1.0])
+
+    def jac(p):
+        phi = (t - p[0] - T0) / P
+        T = fourier_eval(coef, phi)
+        r = m - zp_ep - p[1] - p[2] * T
+        J = np.column_stack([-p[2] * fourier_dphi(coef, phi) / P, np.ones_like(t), T])
+        return r, J
+
     for _ in range(n_iter):
-        phi = (t - tau - T0) / P
-        r = m - zp_ep - dm - fourier_eval(coef, phi)
-        d_tau = -fourier_dphi(coef, phi) / P       # dm/dtau
-        J = np.column_stack([d_tau, np.ones_like(t)])
-        H = J.T @ (J * w[:, None])
-        g = J.T @ (w * r)
-        step = np.linalg.solve(H, g)
-        tau, dm = tau + step[0], dm + step[1]
-        if abs(step[0]) < 1e-7:
+        r, J = jac(p)
+        step = np.linalg.solve(J.T @ (J * w[:, None]), J.T @ (w * r))
+        p = p + step
+        if abs(step[0]) < 1e-8:
             break
-    phi = (t - tau - T0) / P
-    r = m - zp_ep - dm - fourier_eval(coef, phi)
-    J = np.column_stack([-fourier_dphi(coef, phi) / P, np.ones_like(t)])
+    r, J = jac(p)
     cov = np.linalg.inv(J.T @ (J * w[:, None]))
-    return tau, dm, cov[0, 0], float(np.sum(w * r ** 2))
+    wt = w * J[:, 0] ** 2
+    return dict(tau=p[0], dm=p[1], alpha=p[2], var_tau=cov[0, 0], var_alpha=cov[2, 2],
+                chi2=float(np.sum(w * r ** 2)), t_eff=float(np.sum(wt * t) / np.sum(wt)))
 
 
 def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7) -> TimingFit:
@@ -165,11 +174,12 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
             if sel.sum() < min_season:
                 continue
             res[s] = _season_shift(t[sel], m[sel], w[sel], zp[seg_idx[sel]], coef, P, T0, tau_s[s], grid=(it == 0))
-            tau_s[s] = res[s][0]
+            tau_s[s] = res[s]["tau"]
         # sigma clipping on the full model
         tau_ep = np.array([tau_s.get(s, 0.0) for s in lab])
-        dm_ep = np.array([res[s][1] if s in res else 0.0 for s in lab])
-        model = zp[seg_idx] + dm_ep + fourier_eval(coef, (t - tau_ep - T0) / P)
+        dm_ep = np.array([res[s]["dm"] if s in res else 0.0 for s in lab])
+        al_ep = np.array([res[s]["alpha"] if s in res else 1.0 for s in lab])
+        model = zp[seg_idx] + dm_ep + al_ep * fourier_eval(coef, (t - tau_ep - T0) / P)
         z = (m - model) / err
         new = keep & np.isin(lab, list(res)) & (np.abs(z) < clip * max(1.0, 1.4826 * np.median(np.abs(z[mask]))))
         dtau = max(abs(tau_s[s] - tau_prev[s]) for s in res)
@@ -178,24 +188,17 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
         mask = new
 
     ss = np.array(sorted(res))
-    out_tau, out_err, out_chi, out_n, out_t, out_seg = [], [], [], [], [], []
-    for s in ss:
-        sel = mask & (lab == s)
-        tau, dm, var, chi2 = res[s]
-        n = int(sel.sum())
-        chi2nu = chi2 / max(n - 2, 1)
-        out_tau.append(tau)
-        out_err.append(np.sqrt(var * max(chi2nu, 1.0)))
-        out_chi.append(chi2nu)
-        out_n.append(n)
-        out_t.append(t[sel].mean())
-        out_seg.append(seg_names[np.bincount(seg_idx[sel]).argmax()])
-    ntot = mask.sum()
-    chi_tot = sum(res[s][3] for s in ss) / max(ntot - 2 * K - seg_names.size - 2 * ss.size, 1)
+    n = np.array([int((mask & (lab == s)).sum()) for s in ss])
+    chi2 = np.array([res[s]["chi2"] for s in ss])
+    chi2nu = chi2 / np.maximum(n - 3, 1)
+    scale = np.maximum(chi2nu, 1.0)
+    seg_season = np.array([seg_names[np.bincount(seg_idx[mask & (lab == s)]).argmax()] for s in ss])
+    chi_tot = chi2.sum() / max(mask.sum() - 2 * K - seg_names.size - 3 * ss.size, 1)
+    g = lambda k: np.array([res[s][k] for s in ss])
     return TimingFit(P=P, T0=T0, coef=coef, zp=zp, seg_names=seg_names, season=ss,
-                     t_season=np.array(out_t), tau=np.array(out_tau), tau_err=np.array(out_err),
-                     chi2nu_season=np.array(out_chi), n_season=np.array(out_n), seg_season=np.array(out_seg),
-                     mask=mask, chi2nu=float(chi_tot))
+                     t_season=g("t_eff"), tau=g("tau"), tau_err=np.sqrt(g("var_tau") * scale),
+                     alpha=g("alpha"), alpha_err=np.sqrt(g("var_alpha") * scale), dm=g("dm"),
+                     chi2nu_season=chi2nu, n_season=n, seg_season=seg_season, mask=mask, chi2nu=float(chi_tot))
 
 
 def unwrap_delays(tau: np.ndarray, P: float) -> np.ndarray:
