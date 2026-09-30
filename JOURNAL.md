@@ -392,7 +392,7 @@ season epochs scatter by 40 d rms within the year; spectral window at 1/yr = 0.8
 86–100% of the time (alias ≤ 10% at A = 2σ, ≤ 1% at 4σ) → the 800-d cut was over-conservative (my mock had near-degenerate sampling).
 Real limit = season-mean smearing, |sinc(π·240/P)| = 0.23 (300 d), 0.50 (400 d), 0.66 (500 d) → **grid from 400 d**.
 
-### New code (tests: 36 pass)
+### New code (tests: 29 pass)
 - Level 1 `src/rrlbin/pipeline.py` (load → fit per band → series): **MACHO R** added (band 2); `timing._season_coherence`: per-season delay of the fundamental
   minus that of the higher harmonics (**harmonic coherence**; 0 for a pure time shift). Test: pure delay χ²_ν < 2.5; a shape change gives > 4.
 - Level 2 `src/rrlbin/oc.py` (shared by data and sims): **robust unwrapping** (local linear prediction from ±2 neighbours; repairs slips, keeps a 1.5-cycle drift);
