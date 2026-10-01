@@ -69,3 +69,14 @@ def simulate_lc(t, err, seg, coef, zp_by_seg, P, T0, rng, noise_scale=1.0, tau=N
     zp = np.array([zp_by_seg[s] for s in seg])
     m = zp + A * fourier_eval(coef, (t - tau - T0) / P)
     return m + rng.normal(0, 1, t.size) * err * noise_scale, tau
+
+
+def delay_gp(t, amp, ell, rng, step=30.0):
+    """Smooth timing wander: a squared-exponential Gaussian process (amplitude amp [d], correlation length ell [d]),
+    drawn on a regular grid (step [d]) covering t and interpolated to t (the wander is smooth on that scale)."""
+    if amp <= 0:
+        return np.zeros_like(t)
+    g = np.arange(t.min() - step, t.max() + 2 * step, step)
+    K = np.exp(-0.5 * (g[:, None] - g[None, :]) ** 2 / ell ** 2) + 1e-8 * np.eye(g.size)
+    L = np.linalg.cholesky(K)
+    return np.interp(t, g, amp * (L @ rng.normal(0, 1, g.size)))

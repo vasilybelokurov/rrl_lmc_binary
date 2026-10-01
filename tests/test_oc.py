@@ -180,3 +180,21 @@ def test_band_whole_cycle_shift_with_prior_is_harmless():
     y2 = y + np.where(band == 1, P, 0.0)
     b = oc_stats(dict(t=t, tau=y2, err=err, band=band, P=P), priors=pri, with_red=False)
     assert abs(a["D"] - b["D"]) < 1e-6 and abs(a["jit0_s"] - b["jit0_s"]) < 1e-6
+
+
+def test_gp_null_recovers_smooth_wander():
+    """gp_null finds a large amplitude and a long correlation length for injected smooth wander, ~0 for white noise."""
+    from rrlbin.oc import gp_null
+    from rrlbin.simulate import delay_gp
+    rng = np.random.default_rng(14)
+    t = np.sort(np.concatenate([seasons(rng), seasons(rng) + 0.5]))
+    err = np.full(t.size, 150 / DAY)
+    band = np.zeros(t.size, int)
+    A, ells = [], []
+    for _ in range(10):
+        y = delay_gp(t, 900 / DAY, 1500.0, rng) + rng.normal(0, 1, t.size) * err
+        s, a, l = gp_null(t, y, err, band)
+        A.append(a * DAY); ells.append(l)
+    assert 500 < np.median(A) < 1600 and np.median(ells) >= 1000   # REML; amplitude on a coarse grid
+    s, a, l = gp_null(t, rng.normal(0, 1, t.size) * err, err, band)
+    assert a * DAY < 150

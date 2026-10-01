@@ -202,6 +202,49 @@ def red_null(t, tau, err, band, priors=None, n=16):
     return best[1], float(np.sqrt(best[2] * T))
 
 
+GP_ELLS = (700.0, 1500.0, 3000.0, 6000.0)     # correlation lengths [d] of the smooth-wander noise model
+
+
+def _reml_lnl(X, y, C):
+    """Restricted (REML) log-likelihood: the ML value at the GLS solution minus 0.5 log det(X^T C^-1 X). Corrects the
+    downward bias of ML variance estimates when trend terms (quadratic, offsets) are fitted simultaneously."""
+    L = np.linalg.cholesky(C)
+    Xw = np.linalg.solve(L, X)
+    yw = np.linalg.solve(L, y)
+    beta, *_ = np.linalg.lstsq(Xw, yw, rcond=None)
+    r = yw - Xw @ beta
+    sign, logdet_F = np.linalg.slogdet(Xw.T @ Xw)
+    return -0.5 * (r @ r) - np.sum(np.log(np.diag(L))) - 0.5 * logdet_F
+
+
+def gp_null(t, tau, err, band, priors=None, ells=GP_ELLS, n=18):
+    """ML fit under H0 of a smooth timing wander (squared-exponential GP, amplitude A, correlation length l) plus
+    white jitter s, on grids (A and s in units of the median season error). Real excess O-C noise is 'red' (slow wander
+    absorbed within each survey's own quadratic; scripts/noise_timescale_test.py), which a random walk does not
+    reproduce. Fitted by REML (trend terms marginalized). Returns (s [d], A [d], l [d])."""
+    t_ref = np.average(t, weights=err ** -2)
+    X, names = design(t, band, t_ref)
+    Xp, yp, sp = _augment(X, tau, names, priors)
+    e0 = np.median(err)
+    dt2 = (t[:, None] - t[None, :]) ** 2
+    grid = np.r_[0.0, np.geomspace(0.1, 30, n)] * e0
+    best = (-np.inf, 0.0, 0.0, ells[0])
+    for ell in ells:
+        K = np.exp(-0.5 * dt2 / ell ** 2)
+        for A in grid:
+            for s in grid:
+                C = np.diag(err ** 2 + s ** 2) + A ** 2 * K
+                if len(yp):
+                    C = np.block([[C, np.zeros((C.shape[0], len(yp)))], [np.zeros((len(yp), C.shape[0])), np.diag(sp ** 2)]])
+                try:
+                    l = _reml_lnl(np.vstack([X, Xp]), np.r_[tau, yp], C)
+                except np.linalg.LinAlgError:
+                    continue
+                if l > best[0]:
+                    best = (l, s, A, ell)
+    return best[1], best[2], best[3]
+
+
 def predictive_score(t, tau, err, band, test, P_orb, n_harm=1, priors=None):
     """lnL_pred(test | orbit at P_orb fitted on ~test) - lnL_pred(test | no orbit); parameter covariance included."""
     tr = ~test
@@ -275,6 +318,8 @@ def oc_stats(series: dict, priors=None, n_harm_detect=1, p_min=400.0, with_red=T
     if with_red:
         s, rw = red_null(t, tau, err, band, priors)
         out.update(s_red_s=s * DAY, rw_rms_s=rw * DAY)
+        sg, Ag, lg = gp_null(t, tau, err, band, priors)
+        out.update(s_gp_s=sg * DAY, A_gp_s=Ag * DAY, ell_gp_d=lg)
     # predictive test: hold out the MACHO years before OGLE-II (HJD' < 450). Each MACHO band's offset must be tied to
     # OGLE in the training set: either OGLE-II seasons overlapping that band (both in 1997-2000) or a prior on the offset.
     test = (band > 0) & (t < 450)
