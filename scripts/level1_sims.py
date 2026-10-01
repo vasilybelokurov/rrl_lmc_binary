@@ -105,6 +105,8 @@ def main():
     ap.add_argument("--out", default="results/inject/series_v3")
     ap.add_argument("--chunk", type=int, default=40)
     ap.add_argument("--band-lag", default="results/calib/band_lag_v3.json", help="band-lag relations (calibrate_band_lag.py)")
+    ap.add_argument("--sample", choices=["macho", "ogle_only"], default="macho",
+                    help="simulate stars with MACHO data, or OGLE-only stars (separate calibration; noise table from the same group)")
     ap.add_argument("--exclude", default=None, help="CSV with ogle_id column: stars excluded from the empirical noise table")
     a = ap.parse_args()
     per_class = {k: int(v) for k, v in (x.split("=") for x in a.per_class.split(","))}
@@ -115,16 +117,20 @@ def main():
         ex = set(pd.read_csv(a.exclude).ogle_id)
         nt = nt[~nt.ogle_id.isin(ex)]
         print(f"noise table: excluded {len(ex)} stars", flush=True)
-    nt = nt[nt.has_M].dropna(subset=["s_red_s", "rw_rms_s", "err_med_s"])
+    nt = nt[nt.has_M if a.sample == "macho" else ~nt.has_M].dropna(subset=["s_red_s", "rw_rms_s", "err_med_s"])
     noise = np.column_stack([nt.s_red_s / nt.err_med_s, nt.rw_rms_s / nt.err_med_s])   # relative to the season error
     s = sample_table()
-    s = s[s.macho_id.fillna("").str.count(r"\.").eq(2)]
+    has_mid = s.macho_id.fillna("").str.count(r"\.").eq(2)
+    if a.sample == "macho":
+        s = s[has_mid]
+    else:   # OGLE-only: no MACHO light curve (no ID, or tile/epochs missing -> check the real Level-1 band list if available)
+        s = s[~has_mid]
     s = s.sample(n=min(a.n_stars, len(s)), random_state=a.seed).sort_values("ogle_id")
     jobs = [(o, mi, float(P), float(T0), ra, de, a.seed * 100000 + k, per_class, noise, lag)
             for k, (o, mi, P, T0, ra, de) in enumerate(zip(s.ogle_id, s.macho_id, s.P, s.T0, s.ra, s.dec))]
     print(f"stars {len(jobs)}; sims per class {per_class}", flush=True)
     chunked.run_chunked(one_star, jobs, a.out, workers=a.workers, chunk=a.chunk, flatten=True,
-                        manifest=dict(script="level1_sims", ids=[j[0] for j in jobs], per_class=per_class, seed=a.seed,
+                        manifest=dict(script="level1_sims", sample=a.sample, ids=[j[0] for j in jobs], per_class=per_class, seed=a.seed,
                                       band_lag=a.band_lag, noise_table=a.noise_table, exclude=a.exclude))
     d = chunked.merge_parts(a.out)
     print(d.kind.value_counts().to_dict())
