@@ -565,3 +565,15 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
   background-subtracted (pre-α-veto sample, b = 171, Bayesian, systematic 15/25/50%): f < 1.4/2.4/4.1% (model-dependent). M2 0.15–0.4: f < 9.9% (MACHO).
 - Implication: the binary nature of individual candidates can only be decided by external data: OGLE-IV 2017–2026 (incl. the 2022–24 high-cadence fields
   hosting 7 of 11 Tier 1), Gaia DR4, RVs. The population analysis gives a limit, not a detection.
+
+---
+
+## 2026-10-01 — Frozen predictions for 2016–2026 (`scripts/freeze_predictions.py`, `src/rrlbin/predict.py`, `scripts/predictions_decisiveness.py`)
+- First version (white-noise residual bootstrap) **rejected**: bands too narrow for a 10-yr extrapolation with red timing noise (would reject true orbits).
+- Final: red-noise predictive distributions (universal kriging with the smooth-wander GP + trend uncertainty) under H0 (no orbit; GP = the star's REML fit)
+  and H1 (best Keplerian orbit + GP refitted after removing it); tests: kriging widens with distance and reduces to GLS for A = 0 (38 tests pass).
+  28 Tier-1/2 candidates frozen: results/predictions/predictions_2026-10-01.parquet (+ _meta.json with sha256 and code commit; full covariances in cov_2026-10-01/),
+  plots/predictions/. Git tag `predictions-2026-10-01`.
+- Median predictive sd: H1 179 s (2020), 282 s (2024); H0 1629 s, 2812 s.
+- **Expected decisiveness** (new OGLE season delays, 130 s + white jitter): 2017–2020 (3 seasons): Tier 1 median ln BF +4.0 if orbit (7/11 > 3), −53 if no orbit (11/11);
+  2017–2026 (7 seasons): Tier 1 +8.4 (11/11 > 3) / −200 (11/11); Tier 2 +7.2 (17/17) / −101 (17/17). → post-2016 OGLE decides every Tier-1/2 candidate.
