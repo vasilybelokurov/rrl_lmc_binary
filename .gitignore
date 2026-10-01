@@ -20,3 +20,7 @@ docs/writeup/*.toc
 docs/writeup/*.fls
 docs/writeup/*.fdb_latexmk
 docs/writeup/build.log
+
+# Chunk part files of long runs (merged outputs are kept)
+results/**/part_*.parquet
+results/**/manifest.json
