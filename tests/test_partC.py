@@ -82,3 +82,23 @@ def test_bootstrap_prediction_covers_truth():
     off = np.median((best - truth(tp))[:3])
     cover = np.mean((truth(tp) + off >= lo) & (truth(tp) + off <= hi))
     assert cover > 0.8
+
+
+def test_krige_interpolates_and_widens():
+    """Universal kriging: near the data the predictive sd is ~ the noise level; it grows with distance beyond the data;
+    with A = 0 it reduces to the GLS quadratic prediction."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from rrlbin.predict import krige
+    DAY = 86400.0
+    rng = np.random.default_rng(2)
+    t = np.sort(rng.uniform(0, 7000, 25))
+    err = np.full(t.size, 100 / DAY)
+    y = 1e-10 * (t - 3500) ** 2 + rng.normal(0, 1, t.size) * err
+    tp = np.array([3500.0, 7500.0, 9000.0, 11000.0])
+    m, c = krige(t, y, err, np.zeros(t.size, int), tp, 500 / DAY, 1500.0, 0.0)
+    sd = np.sqrt(np.diag(c)) * DAY
+    assert sd[0] < sd[1] < sd[2] < sd[3]
+    m0, c0 = krige(t, y, err, np.zeros(t.size, int), tp, 0.0, 1500.0, 0.0)
+    X = np.vander((t - t.mean()) / 1000, 3)
+    b = np.linalg.lstsq(X, y, rcond=None)[0]
+    assert np.allclose(m0, np.vander((tp - t.mean()) / 1000, 3) @ b, atol=1e-7)
