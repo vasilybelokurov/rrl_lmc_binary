@@ -559,7 +559,8 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
   D distribution, real MACHO vs empirical sims: P(D > 10/20/40/80) = 0.752/0.327/0.123/0.017 vs 0.783/0.325/0.105/0.015 (null 0.243/0.002/0/0).
   All cuts except the amplitude veto: real 150 vs empirical-predicted 171. The amplitude veto passes 46% of real such stars but 100% of empirical sims
   (no amplitude modulation simulated: real timing noise often comes with Blazhko-like amplitude changes) → after correction: candidates 69 vs ~80 expected;
-  Tier-1 proxy (cuts + α < 1.5 + coherence < 1.5 + pred > 2) 24 vs ~33 expected. **No population-level excess of orbit-like signals.**
+  Tier-1 proxy (cuts + α < 1.5 + coherence < 1.5 + pred > 2) 24 vs ~33 expected [CORRECTED 2026-10-01: these numbers omitted the α < 1.5 term;
+  with the full proxy (as in partB_analysis.py) 17 vs ≈24 ± 5 (α correction 0.33); conclusion unchanged — scripts/plot_partB.py]. **No population-level excess of orbit-like signals.**
   Caveat (circularity, Codex finding 3): the empirical noise is drawn from the real stars' own REML fits (candidates excluded), which also absorb any undetected orbits.
 - Upper limits, M2 0.4–1.5 Msun, P 1–10 kd: model-free (all candidates treated as binaries) **f < 2.7% (MACHO)**, < 1.5% (OGLE-only; low completeness);
   background-subtracted (pre-α-veto sample, b = 171, Bayesian, systematic 15/25/50%): f < 1.4/2.4/4.1% (model-dependent). M2 0.15–0.4: f < 9.9% (MACHO).
@@ -586,3 +587,17 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
   Bobrick et al. 2024 MNRAS 527, 12196 (10.1093/mnras/stad3996; arXiv:2208.04332; Crossref issue date 2023-12);
   Zhang et al. 2025 MNRAS 544, 2493 (10.1093/mnras/staf1789; arXiv:2504.06720); Iorio et al. 2026 A&A 712, A223 (10.1051/0004-6361/202659978; arXiv:2603.20429).
 - Pending: Part B results in the write-up; amplitude modulation in the empirical noise class + Part B re-run (approved; waits for free CPU).
+
+## 2026-10-01 — Write-up brought to v3 (docs/writeup/rrl_lmc_binary_oc.tex → 23 pp)
+- §4 pipeline rewritten for v3: MACHO B + R, harmonic coherence, conservative unwrap, band-lag priors (+ whole-cycle alignment), iterative common mode,
+  400-d grid (alias test + season smearing), red-noise GP/REML model and the empirical class, predictive test, 40 tests (all pass).
+- §5 selection on v3: `plot_summary_stats.py` and `selection_numbers.py` gained `--sim-amp` (v3 sims: amp_circ_s) → plots/summary_stats_v3.png,
+  results/real/selection_numbers_v3.json, results/real/candidates_v3_summary.csv (75 candidates, reproduces Part C). Funnel 1009 → 366 → 346 → 92 → 75 (MACHO 812 → 69);
+  LTTE 0.304 → 0.160, empirical 0.105 → 0.026, large jump 0.809 → 0.090, Blazhko 0.316 → 0.022; null D max 23.0 (2998).
+- New §6 Part B (`scripts/plot_partB.py` → plots/partB_summary.png): D survival real vs empirical; pass rates; observed vs expected 150/171, 69/79, 17/24;
+  completeness grid; limits 2.7% (model-free), 1.4/2.4/4.1% (background-subtracted, re-run); context paragraph on binary-channel RRL from the verified abstracts
+  (Iorio & Belokurov 2021; Bobrick+2024: A/F/G/K companions, P > 1000 d; Zhang+2025: [Fe/H] > −0.5 at ~6–7 Gyr; Iorio+2026: ~900–2000 d, tension with Gaia DR3).
+- §7 Part C: no longer "provisional"; Tier-1 sheet 10449 as Fig. 8; numbers updated. New §8 frozen predictions + OGLE after 2016 + decisiveness table
+  (caveat stated: the H1 kriging covariance is conditional on the best-fit orbit → add the bootstrap envelope). New §9 summary and next steps.
+- References added and checked (arXiv API / Crossref): Michalska & Pigulski 2005 (10.1051/0004-6361:20042343), Mróz+2024 ApJL 976, L19 (10.3847/2041-8213/ad8e68),
+  the four binary-channel papers with DOIs. Old v2 §6 "Status" removed (superseded by §6 Part B).

@@ -17,7 +17,7 @@
 \usepackage{caption}
 \usepackage[section]{placeins}
 \captionsetup{font=small,labelfont=bf}
-\graphicspath{{../../plots/writeup/}{../../plots/}{../../plots/candidates/}{../../plots/partC/}{../../plots/partC/sheets/}}
+\graphicspath{{../../plots/writeup/}{../../plots/}{../../plots/candidates/}{../../plots/partC/}{../../plots/partC/sheets/}{../../plots/predictions/}}
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue,
   pdftitle={Binary RR Lyrae in the LMC: what the O-C measures and how the pipeline works}}
@@ -30,7 +30,7 @@
 \title{\bf Binary RR Lyrae in the LMC from the light-travel-time effect\\
 \large What we measure (the \OC\ diagram), mock illustrations, and the pipeline}
 \author{Project \texttt{rrl\_lmc\_binary} --- working note}
-\date{30 September 2026 (code: \url{https://github.com/vasilybelokurov/rrl_lmc_binary})}
+\date{1 October 2026, pipeline v3 (code: \url{https://github.com/vasilybelokurov/rrl_lmc_binary})}
 
 \begin{document}
 \maketitle
@@ -40,11 +40,14 @@ An RR Lyrae star pulsates with a period of about half a day and a very stable, s
 can be used as a clock. If it orbits a companion, its distance from us changes periodically and the pulsation
 signal arrives earlier or later by the light-travel time across the orbit --- minutes to tens of minutes for
 companions of $0.1$--$1\,\Msun$ on 3--30-yr orbits. We measure this delay once per observing season for
-17{,}492 LMC RRab stars with OGLE-II/III/IV photometry (1997--2016) and, for 6{,}614 of them, MACHO photometry
+17{,}488 LMC RRab stars with OGLE-II/III/IV photometry (1997--2016) and, for 6{,}612 of them, MACHO $B$ and $R$ photometry
 (1992--1999). The resulting time series of delays is the \OC\ diagram. This note explains the measurement in
-words and in equations, illustrates it with mock data, and documents the pipeline, its tests and its known
-limitations. The candidate selection is explained panel by panel in \cref{sec:selection}; results are summarized briefly in
-\cref{sec:status}; the candidates are compared with the Galactic-bulge sample, and tested with Gaia photometry, in \cref{sec:hajdu}.
+words and in equations, illustrates it with mock data, and documents the pipeline and its tests (\cref{sec:words,sec:eqs,sec:mocks,sec:pipeline}).
+It then gives the results: the candidate selection (\cref{sec:selection}; 75 candidates, 11 in the cleanest tier); the calibration
+on simulations (\cref{sec:partB}), which shows that the real stars carry red, mostly intrinsic timing noise that accounts for
+the number of candidates and gives an upper limit $f<2.7\%$ on the fraction with $0.4$--$1.5\,\Msun$ companions at
+$P_{\rm orb}=1$--10\,kd; a comparison with the Galactic-bulge candidates and a Gaia test (\cref{sec:hajdu}); and frozen
+predictions for 2016--2026 that post-2016 OGLE-IV photometry would test decisively (\cref{sec:pred}).
 \end{abstract}
 
 \tableofcontents
@@ -148,7 +151,7 @@ template's fundamental harmonic has phase zero.
 \subsection{Detection statistic $D$}
 On the season delays $\{t_j,\tau_j,\sigma_j\}$ we compare two Gaussian models with variance $\sigma_j^2+s^2$
 (extra jitter $s$ fitted in each):
-$H_0$: \cref{eq:quad} (+ a free MACHO offset); $H_1$: $H_0$ + $A_s\sin(2\pi t/P_{\rm orb})+A_c\cos(2\pi t/P_{\rm orb})$.
+$H_0$: \cref{eq:quad} (+ MACHO $B$ and $R$ offsets with band-lag priors, \cref{sec:tie}); $H_1$: $H_0$ + $A_s\sin(2\pi t/P_{\rm orb})+A_c\cos(2\pi t/P_{\rm orb})$.
 \begin{equation}\label{eq:D}
 D=2\max_{P_{\rm orb}}\left[\ln\mathcal L_1(P_{\rm orb})-\ln\mathcal L_0\right].
 \end{equation}
@@ -210,7 +213,7 @@ series is offset by a constant from the OGLE series; the years observed by both 
 \subsection{Data}
 \begin{itemize}[leftmargin=*]
 \item \textbf{OGLE-IV} LMC RR Lyrae collection \citep{Soszynski2016}: 41{,}471 stars; $I$-band light curves for 41{,}209,
-epochs HJD$'$ = 5260--8924, where HJD$'$ = HJD $-$ 2450000 (public data mostly end at 7507, i.e.\ 2016).
+epochs HJD$'$ = 5260--8924, where HJD$'$ = HJD $-$ 2450000 (for 95\% of the stars the public data end at HJD$'\approx7516$, mid-2016).
 \url{https://www.astrouw.edu.pl/ogle/ogle4/OCVS/lmc/rrlyr/}
 \item \textbf{OGLE-III} \citep{Soszynski2009}: 24{,}906 light curves, HJD$'=2166$--$4540$ (2001--2008); the 2024
 re-issue of the files includes \textbf{OGLE-II} epochs (from HJD$'=447$, 1997) for 7{,}784 stars.
@@ -218,200 +221,287 @@ Same star numbering as OGLE-IV (24{,}818 matches, median separation $0.05''$).
 \url{https://www.astrouw.edu.pl/ogle/ogle3/OIII-CVS/lmc/rrlyr/}
 \item \textbf{MACHO} $B$ and $R$ photometry (1992--1999) via the NCI TAP service
 (\url{https://machotap.asvo.nci.org.au/ncitap/tap}), queried per tile for the RR Lyrae only (MACHO IDs from the
-OGLE-III cross-identification): 8{,}406 of 8{,}557 requested stars returned. We use MACHO $B$.
-\item \textbf{Sample for this note:} 17{,}492 RRab with OGLE-III and OGLE-IV light curves; 6{,}614 with usable MACHO data;
-2{,}378 of these also have OGLE-II (overlap years 1997--1999).
+OGLE-III cross-identification): 8{,}406 of 8{,}557 requested stars returned. Both bands are used.
+\item \textbf{Sample:} 17{,}488 RRab with a successful OGLE $I$ timing fit; 6{,}612 of them with MACHO
+(6{,}599 with both $B$ and $R$), 10{,}876 OGLE only.
 \end{itemize}
 
 \subsection{Time system}
 OGLE times are HJD (UTC). MACHO \texttt{dateobs} is MJD and is converted to HJD for each star (observer at Mount
 Stromlo); towards the LMC, near the south ecliptic pole, the heliocentric correction is only $\pm40$\,s
-(tested). Whether MACHO times refer to the start or middle of the exposure is not documented; the band-lag test in
-\cref{sec:tie} limits any residual MACHO--OGLE clock offset to $\approx\pm50$\,s.
+(tested). MACHO time stamps refer to the start of the exposure ($+150$\,s to mid-exposure; \citealt{Michalska2005}); a constant offset of this kind is absorbed by the per-band
+MACHO offset (\cref{sec:tie}).
 
 \subsection{Seasons}
 A season is one observing year, with the boundary at HJD$'$ mod 365.25 $=245$ (the middle of the OGLE seasonal gap).
 MACHO observed the LMC nearly year-round, so gap-based seasons would merge years. Seasons with fewer than 15 epochs are dropped.
 
 \subsection{Timing fit per star and band}
-\cref{eq:lc} with $K=8$, separate zero points per survey segment, per-season $(\tau_j,\delta m_j,\alpha_j)$,
-$4\sigma$ clipping, template$\leftrightarrow$delay iterations until the mask is stable and $\max|\Delta\tau|<10^{-7}$\,d,
-the fundamental-phase gauge, and errors from \cref{eq:fisher} scaled by $\sqrt{\max(\chi^2_\nu,1)}$. Delays are
-defined modulo $P$ and unwrapped between consecutive seasons.
-\emph{Measured precision} (1000 random OGLE-III+IV RRab): median season error 253\,s (10--90\%: 121--510\,s), strongly
-amplitude-dependent (476\,s for $A_I<0.4$, 113\,s for $A_I>0.8$); MACHO $B$ per year: median 135\,s.
+\cref{eq:lc} with $K=8$, one template per band (OGLE $I$, MACHO $B$, MACHO $R$), separate zero points per survey segment,
+per-season $(\tau_j,\delta m_j,\alpha_j)$, $4\sigma$ clipping, template$\leftrightarrow$delay iterations until the mask is
+stable and $\max|\Delta\tau|<10^{-7}$\,d, the fundamental-phase gauge, and errors from \cref{eq:fisher} scaled by
+$\sqrt{\max(\chi^2_\nu,1)}$. Each season also yields a \emph{harmonic coherence}: the delay measured from the fundamental
+minus that measured from the higher harmonics. For a pure time shift (LTTE) it is zero within errors; a change of light-curve
+shape makes it non-zero. Delays are defined modulo $P$; they are unwrapped between consecutive seasons, and a slip is
+repaired only if the repair reduces the jumps to both adjacent seasons (a more aggressive rule made noisy stars worse).
+\emph{Measured precision:} median season error 189\,s for MACHO stars and 270\,s for OGLE-only stars (combined over bands),
+strongly amplitude-dependent.
 
 \subsection{Tying MACHO to OGLE}\label{sec:tie}
-Band-dependent template shapes leave a constant offset $\Delta$ between the MACHO $B$ and OGLE $I$ delay series
-(\cref{fig:bands}). On 781 stars observed by both in 1997--1999: $\Delta/P=-0.034$ cycles (robust scatter 0.008), with
-a $\sim300$-s star-to-star scatter. The same behaviour (lag $-0.035$ cycles, similar period dependence and scatter) is
-found between OGLE's own $V$ and $I$, which share one time system: the offset is a physical band lag, not a MACHO clock
-error. In the \OC\ search $\Delta$ is a free parameter per star (an indicator column); for stars with OGLE-II it is fixed
-by the overlap years.
+Band-dependent template shapes leave a constant offset $\Delta$ between each MACHO delay series and the OGLE $I$ series
+(\cref{fig:bands}). The same behaviour is found between OGLE's own $V$ and $I$, which share one time system: the offset
+is a physical band lag, not a clock error. Calibrated on the full sample (\texttt{scripts/calibrate\_band\_lag.py}):
+\begin{equation}
+\Delta_B=-6648\,P+1966\ {\rm s}\ (\sigma_{\rm int}=293\,{\rm s},\ N=1582),\qquad
+\Delta_R=-2656\,P+718\ {\rm s}\ (\sigma_{\rm int}=218\,{\rm s},\ N=1552),
+\end{equation}
+with $P$ in days ($-0.036$ and $-0.016$ cycles). In the \OC\ fits each MACHO band has its own offset with this relation as a
+Gaussian prior (pseudo-observations, identical under $H_0$ and $H_1$). About 13\% of MACHO stars had a band series a whole
+pulsation cycle away from the prior after unwrapping; these are shifted by the integer number of cycles that best matches
+the prior (\texttt{oc.align\_bands}). Simulated stars draw their MACHO offsets from the same relation and scatter.
 
 \subsection{Common-mode timing correction}
-Stacking all stars' \OC\ residuals by year reveals a common MACHO pattern ($-113$ to $+40$\,s) and a smaller OGLE drift
-($+10$ to $+24$\,s in 2006--2008). A null test (white-noise delays at the real epochs, same stacking) is consistent
-with zero, so these are real timing systematics; the per-(survey, year) median is subtracted from every star (median
-correction 12\,s rms per star; the candidate list is unchanged by it).
+Stacking all stars' \OC\ residuals by (band, year) reveals a common pattern. It is solved iteratively as a clipped mean,
+with the directions that are degenerate with each star's own model (a common quadratic and per-band constants) projected
+out; candidates are excluded. The MACHO $B$ and $R$ patterns agree within a few seconds (1992--1999, $B$: $-37$, $+26$, $+34$,
+$+39$, $+56$, $+53$, $-60$, $-110$\,s; $R$: $-38$, $+24$, $+32$, $+41$, $+55$, $+49$, $-63$, $-99$\,s), so this is a timing
+systematic of the MACHO data; the OGLE pattern spans $-66$ to $+46$\,s. A null test (white-noise delays at the real epochs) is
+consistent with zero. The correction is subtracted from every star.
 
 \subsection{Orbit search and the annual-sampling limit}\label{sec:nyquist}
-$D$ (\cref{eq:D}) is maximized over trial periods uniform in frequency, from 800\,d to twice the baseline. Season
-delays sample the \OC\ about once per year, so orbital periods below the Nyquist limit of 2\,yr are aliased: in an
-earlier version the grid started at 300\,d and a 3000-d orbit could be assigned its alias at
-$1/(1/365.25-1/3000)=416$\,d. All statistics in this note use the corrected grid.
-Orbits shorter than 2\,yr would require within-season timing and are outside the present search.
+$D$ (\cref{eq:D}) is maximized over trial periods uniform in frequency, from 400\,d to twice the baseline; $H_1$ is fitted both
+with a circular orbit (one harmonic) and with two harmonics (eccentric orbits). Season delays sample the \OC\ about once per
+year, but the epochs of the seasons scatter by 40\,d rms within the year; the spectral window at $1/{\rm yr}$ is 0.85, not 1, and
+injected orbits from 300\,d upwards are recovered at the true period in 86--100\% of cases (\texttt{scripts/alias\_test.py}).
+The real short-period limit is the averaging of the orbit over a season of $\approx240$\,d, which reduces the amplitude by
+$|\mathrm{sinc}(\pi\,240/P_{\rm orb})|=0.23$, 0.50, 0.66 at 300, 400, 500\,d; hence the grid starts at 400\,d. An alias flag
+records the difference in $D$ between the best period and its $\pm1/{\rm yr}$ aliases.
 
-\subsection{Nuisances and discriminators}\label{sec:nuis}
-Simulated on each star's real cadence and errors from its own fitted templates (\texttt{src/rrlbin/simulate.py};
-one delay realization shared by MACHO and OGLE): constant \Pdot; Blazhko (coherent phase and amplitude modulation,
-$P_B=20$--3000\,d); abrupt period changes ($|\Delta P/P|$ from $10^{-6}$ to $2\times10^{-4}$); random-walk phase (50--15{,}000\,s rms);
-LTTE (log-uniform $P_{\rm orb}=300$--$10^4$\,d, $M_2=0.05$--$1.5\,\Msun$, isotropic, half eccentric). Discriminators:
+\subsection{Noise models, nuisances and discriminators}\label{sec:nuis}
+Simulations use each star's real cadence and errors and its own fitted templates (\texttt{src/rrlbin/simulate.py}); one
+delay realization is shared by all bands. Classes: white noise (null); Blazhko (coherent phase and amplitude modulation,
+$P_B=20$--3000\,d); abrupt period changes, small and large; random-walk phase, small and large; LTTE (log-uniform
+$P_{\rm orb}=400$--$10^4$\,d, $M_2=0.05$--$1.5\,\Msun$, isotropic, half eccentric); and an \textbf{empirical} class that
+reproduces the real stars' excess timing noise (below).
+
+\textbf{The real excess timing noise is red.} Real stars scatter about $H_0$ far more than the photometric errors allow
+($\chi^2_\nu$ p50/p90 $\approx2/30$, against $\approx1/2$ for white-noise simulations, which do reproduce the real per-season
+errors to within 2--3\%). The excess is common to the bands: same-season residuals correlate with Spearman $\rho=0.58$ between
+MACHO $B$ and $R$ and $\rho=0.37$ between MACHO and OGLE (nulls: $\approx0$). It is mostly intrinsic to the stars. It is also
+\emph{smooth}: per survey, the scatter about a quadratic is much smaller than over the joint baseline, whereas a Brownian random
+walk overpredicts it by a factor $\sim7$--10. We model it as a Gaussian process (GP) wander plus white jitter,
+\begin{equation}
+y_j=\mathbf x_j^{\rm T}\bm\beta+w(t_j)+\epsilon_j,\quad
+\langle w(t)w(t')\rangle=A_w^2\exp\!\left[-\frac{(t-t')^2}{2\ell^2}\right],\quad \epsilon_j\sim\mathcal N(0,\sigma_j^2+s^2),
+\end{equation}
+fitted by restricted maximum likelihood (REML; ML biases $A_w$ low) on a grid $\ell\in\{700,1500,3000,6000\}$\,d
+(\texttt{oc.gp\_null}). Real fits give $A_w/\sigma$ p50/p75/p90 = 2.1/11/22 (MACHO stars) and 1.5/7.8/22 (OGLE-only);
+$\ell=700$\,d is the most common. The \textbf{empirical} class draws $(s/\sigma,A_w/\sigma,\ell)$ from the real fits
+(candidates excluded) and splits the white jitter 64\% common to all bands and 36\% per instrument (MACHO $B+R$ shared), which
+reproduces the measured band correlations ($\rho_{BR}=0.63$, $\rho_{\rm MO}=0.37$). The per-band $\chi^2_\nu$ of the empirical
+simulations matches the real stars within a factor 1.5--2.5, with the simulations slightly noisier: conservative for false alarms.
+
+\textbf{Discriminators} (computed identically for data and simulations):
 \begin{itemize}[leftmargin=*]
-\item amplitude constancy $\chi^2_\nu(\alpha_j)<2$ (Blazhko veto; LTTE does not change amplitude);
+\item amplitude constancy $\chi^2_\nu(\alpha_j)<2$, pooled over bands (Blazhko veto; LTTE does not change amplitude);
+\item harmonic coherence $\chi^2_\nu$ (shape changes; LTTE shifts all harmonics equally);
 \item at least 1.5 orbital cycles within the baseline;
-\item a physical ceiling: $A$ below $a_1/c$ for $M_2=2\,\Msun$ at the fitted period (costs 4.5\% of true LTTE; applied
-identically to simulations);
-\item for stars with OGLE-II: a predictive test (fit from 1997 on, predict the held-out 1992--1996 MACHO delays).
+\item a physical ceiling: $A$ below $a_1/c$ for $M_2=2\,\Msun$ at the fitted period;
+\item for MACHO stars, a predictive test: the orbit period and parameters are found from the seasons after HJD$'=450$ only
+(unwrapping and band alignment also done on these training seasons), then the held-out 1992--1996 MACHO delays are predicted;
+the score is the log-likelihood gain of the orbit prediction over the $H_0$ prediction.
 \end{itemize}
-Real stars have a heavier tail of timing noise than the nuisances first simulated (jitter 90th/97th percentiles
-1.6/3.8\,ks), which motivated the large random-walk and large-jump classes.
 
 \subsection{Code and tests}
-Package \texttt{rrlbin} (\texttt{io}, \texttt{timing}, \texttt{ltte}, \texttt{simulate}, \texttt{mixture}); 20 unit tests
-(\texttt{pytest}): Fourier derivatives, exact recovery of noiseless delays ($<0.01$\,s), gauge invariance, pull
-distributions of noisy delays, Kepler solver and eccentric delay amplitude, LTTE amplitudes of \cref{tab:amp}, mass
-function, O$-$C search recovery and null calibration, the annual-Nyquist grid, predictive score, MJD$\to$HJD. Long
-runs use a chunked, resumable runner. Full log: \texttt{JOURNAL.md}.
+Package \texttt{rrlbin}: \texttt{io}, \texttt{timing} (per-season fits), \texttt{pipeline} (Level 1: star $\to$ delay series),
+\texttt{oc} (Level 2: unwrapping, band alignment, common mode, orbit search, GP noise model, predictive test; shared by data
+and simulations), \texttt{ltte}, \texttt{simulate}, \texttt{kepler\_fit} (Keplerian fits), \texttt{predict} (kriging predictions),
+\texttt{mixture}. 40 unit tests (\texttt{pytest}, all pass), including recovery of noiseless delays, gauge invariance, pull
+distributions, the Kepler solver, the null calibration of $D$, the alias test, leakage-free predictive scores, band alignment, GP
+recovery ($A_w$ 950 vs 900\,s injected at $\ell=1500$\,d), Keplerian recovery of $e=0$, 0.4, 0.7 orbits and the kriging limits.
+Two bugs found by tests in v3 (amplitudes 19\% low from a parameter-name collision; prediction leakage) are fixed with
+regression tests. Long runs use a chunked, resumable runner with a manifest check. Full log: \texttt{JOURNAL.md}.
 
 %==============================================================================
 \section{Selection of candidates}\label{sec:selection}
 
-\Cref{fig:summary} summarizes the \OC\ fits of all 17{,}492 RRab (after the common-mode correction and on the
-Nyquist-safe period grid) together with 23{,}552 simulations run through the same pipeline on the real cadences of
-1{,}472 MACHO+OGLE stars (\texttt{results/inject/macho\_v2.parquet}; 2 null, 2 Blazhko, 1 small jump, 1 small random
-walk, 2 large jumps, 2 large random walks and 4 LTTE per star). All numbers below are from
-\texttt{scripts/selection\_numbers.py} (\texttt{results/real/selection\_numbers.json}).
+\Cref{fig:summary} summarizes the v3 \OC\ fits of all 17{,}488 RRab (after the common-mode correction, with band-lag priors,
+on the 400-d period grid) together with 26{,}982 simulations run through the same pipeline on the real cadences of 1{,}500
+MACHO+OGLE stars (\texttt{results/inject/stats\_v3\_macho.parquet}; per star 2 null, 2 Blazhko, 1 small jump, 1 small random
+walk, 2 large jumps, 2 large random walks, 4 empirical-noise and 4 LTTE). A second campaign on 800 OGLE-only stars (14{,}400
+simulations) calibrates the OGLE-only sample. All numbers below are from \texttt{scripts/selection\_numbers.py}
+(\texttt{results/real/selection\_numbers\_v3.json}); the figure from \texttt{scripts/plot\_summary\_stats.py}.
 
 \begin{figure}[p]
-\centering\includegraphics[height=0.9\textheight]{summary_stats.png}
-\caption{Summary statistics of the \OC\ fits and the candidate selection. Grey: all real RRab; red: the 69 candidates;
-coloured lines: simulated classes. Panels are described in \cref{sec:panels}; the cuts in \cref{tab:cuts}.}
+\centering\includegraphics[height=0.9\textheight]{summary_stats_v3.png}
+\caption{Summary statistics of the v3 \OC\ fits and the candidate selection. Grey: all real RRab; red: the 75 candidates;
+coloured lines: simulated classes (MACHO campaign). Panels are described in \cref{sec:panels}; the cuts in \cref{tab:cuts}.}
 \label{fig:summary}
 \end{figure}
 
 \subsection{The panels}\label{sec:panels}
 \begin{description}[leftmargin=0pt,style=nextline]
-\item[(a) Detection statistic.] Distribution of $D$ (\cref{eq:D}) for real stars (grey) and for four simulated classes.
-White-noise nulls (black; only a constant \Pdot\ and the photometric noise) never exceed $D=23$ in 2{,}944
-simulations; their per-star false-alarm thresholds are $D=12.4$ (5\%), 15.6 (1\%) and 20.2 (0.1\%). Real stars have
-a long tail extending far beyond the nulls: at $D>40$ they number 691 (4.0\%) where white noise predicts none.
-Simulated orbits (blue), Blazhko modulation (orange) and large abrupt period changes (green) all populate that tail,
-so $D$ alone cannot separate orbits from intrinsic period changes.
-\item[(b) $D$ versus best period.] Each star's $D$ at the period that maximizes it. The search starts at 800\,d
-(\cref{sec:nyquist}); the vertical banding is the discreteness of the frequency grid (nearly all MACHO stars share an
-8{,}350-d baseline and hence the same grid points). Candidates (red; 81\% of them) concentrate at 2{,}500--5{,}000\,d, the range in
-which a 24-yr baseline covers about 2--4 cycles and the search is most sensitive.
+\item[(a) Detection statistic.] Distribution of $D$ (\cref{eq:D}) for real stars (grey) and four simulated classes.
+White-noise nulls (black; a constant \Pdot\ and photometric noise only) never exceed $D=23.0$ in 2{,}998 simulations; their
+per-star false-alarm thresholds are $D=13.8$ (5\%), 16.9 (1\%) and 20.5 (0.1\%). Real stars have a long tail far beyond
+the nulls: 1{,}009 (5.8\%) have $D>40$, where white noise predicts none. Simulated orbits (blue), Blazhko modulation (orange)
+and large abrupt period changes (green) all populate that tail, so $D$ alone cannot separate orbits from intrinsic period
+changes. (The empirical class, which reproduces the real tail, is shown in \cref{fig:partB}a.)
+\item[(b) $D$ versus best period.] Each star's $D$ at the period that maximizes it. The vertical banding is the discreteness
+of the frequency grid (nearly all MACHO stars share one baseline and hence the same grid points). Candidates (red; 81\% of
+them) concentrate at 2{,}500--5{,}000\,d, where a 24-yr baseline covers about 2--4 cycles and the search is most sensitive.
 \item[(c) Amplitude versus period.] Fitted semi-amplitude $A=a_1\sin i/c$ with the edge-on LTTE amplitude for
-$M_2=0.15$, $0.5$ and $2\,\Msun$ ($M_1=0.65\,\Msun$). The solid line is the physical ceiling used in cut~5. The large cloud
-above it at long periods consists of stars whose \OC\ changes by a large fraction of a pulsation cycle --- intrinsic
+$M_2=0.15$, $0.5$ and $2\,\Msun$ ($M_1=0.65\,\Msun$). The solid line is the physical ceiling used in cut~5. The cloud
+above it at long periods consists of stars whose \OC\ changes by a large fraction of a pulsation cycle: intrinsic
 period changes far larger than any companion of $\le2\,\Msun$ can produce. Candidates lie between the $0.15$ and
-$2\,\Msun$ curves, about half (52\%) above the $0.5\,\Msun$ curve.
+$2\,\Msun$ curves, 37\% above the $0.5\,\Msun$ curve.
 \item[(d) Signal versus timing noise.] Orbit amplitude and extra jitter (fitted under $H_0$), both in units of the median
-season error. Stars with no extra jitter under $H_0$ form the column at zero. A real orbit that is not modelled under
-$H_0$ is absorbed as jitter, so strong orbits move up and to the right together; the discrete columns are the
-jitter grid. Cut 3 (dashed) removes signals that are not resolved season by season.
+season error. Stars with no extra jitter under $H_0$ form the column at zero. A real orbit not modelled under $H_0$ is
+absorbed as jitter, so strong orbits move up and to the right together; the discrete columns are the jitter grid.
+Cut 3 (dashed) removes signals that are not resolved season by season.
 \item[(e) Blazhko veto.] $\chi^2_\nu$ of the per-season amplitude factors $\alpha_j$ about their mean. A light-travel delay
 shifts the light curve without changing its amplitude ($\chi^2_\nu\approx1$), whereas Blazhko modulation changes it:
-the median $\chi^2_\nu$ is 0.97 for simulated orbits and 0.97 for nulls, but 1.8 for simulated Blazhko stars and 1.4
+the median $\chi^2_\nu$ is 0.97 for simulated orbits and 0.98 for nulls, but 1.9 for simulated Blazhko stars and 1.46
 for real stars. The black histogram (real, $D>40$) is shifted to large $\chi^2_\nu$: most high-$D$ real stars change
 amplitude from season to season.
-\item[(f) Cycles covered.] Baseline divided by the best period. Real stars with long best periods ($<1.5$ cycles) are
-numerous; at fewer than 1.5 cycles a sinusoid is not distinguishable from a smooth curve (cubic trend, broken line,
-random walk).
+\item[(f) Cycles covered.] Baseline divided by the best period. At fewer than 1.5 cycles a sinusoid is not distinguishable
+from a smooth curve (cubic trend, broken line, smooth wander).
 \item[(g) Selection funnel.] Fraction of each class passing the cuts applied in sequence. Real stars (red) fall from
-4.0\% to 0.39\%; simulated orbits (broad prior, blue) from 23\% to 13.6\%; the most orbit-like nuisance, large abrupt period
-changes (green), from 64\% to 5.6\%; white-noise nulls pass none.
+5.8\% to 0.43\%; simulated orbits (blue) from 30\% to 16\%; large abrupt period changes (green) from 81\% to 9\%;
+white-noise nulls pass none.
 \item[(h) Candidates.] Minimum companion mass (edge-on, $M_1=0.65\,\Msun$, from \cref{eq:fm}) against orbital period,
 coloured by $\log D$; dotted lines mark the three companion-mass groups suggested for the Galactic bulge by
-\citet{Hajdu2021}. This panel is descriptive: which of these are binaries is not established (\cref{sec:status}).
+\citet{Hajdu2021}. This panel is descriptive: which of these are binaries is not established (\cref{sec:partB}).
 \end{description}
 
 \subsection{The cuts and why}\label{sec:cuts}
 \begin{table}[h]
 \centering
 \caption{Candidate cuts, applied in order. Columns: surviving real stars (all / with MACHO), and the fraction of each
-simulated class still passing after the cut (LTTE: broad prior, $P_{\rm orb}=300$--$10^4$\,d, $M_2=0.05$--$1.5\,\Msun$).}
+simulated class (MACHO campaign) still passing after the cut. LTTE: broad prior, $P_{\rm orb}=400$--$10^4$\,d,
+$M_2=0.05$--$1.5\,\Msun$; emp.: empirical timing noise (\cref{sec:nuis}); r.w.: random walk.}
 \label{tab:cuts}
 \small
-\begin{tabular}{llrrrrrrr}
+\begin{tabular}{llrrrrrrrr}
 \toprule
-& cut & real & LTTE & Blazhko & jump & large jump & large r.w. & null\\
+& cut & real & LTTE & emp. & Blazhko & jump & large jump & large r.w. & null\\
 \midrule
-1 & $D>40$ & 691 / 496 & 0.230 & 0.210 & 0.031 & 0.638 & 0.077 & 0\\
-2 & $\chi^2_\nu(\alpha)<2$ & 301 / 232 & 0.227 & 0.042 & 0.029 & 0.611 & 0.062 & 0\\
-3 & $A/\sigma_{\rm season}>3$ & 294 / 225 & 0.207 & 0.041 & 0.025 & 0.604 & 0.062 & 0\\
-4 & $\ge1.5$ cycles & 88 / 71 & 0.136 & 0.041 & 0.001 & 0.068 & 0.023 & 0\\
-5 & $A<a_1/c\,(M_2=2\,\Msun)$ & \textbf{69 / 62} & 0.136 & 0.025 & 0.001 & 0.056 & 0.005 & 0\\
+1 & $D>40$ & 1009 / 812 & 0.304 & 0.105 & 0.316 & 0.062 & 0.809 & 0.212 & 0\\
+2 & $\chi^2_\nu(\alpha)<2$ & 366 / 296 & 0.302 & 0.105 & 0.065 & 0.062 & 0.795 & 0.163 & 0\\
+3 & $A/\sigma_{\rm season}>3$ & 346 / 276 & 0.246 & 0.103 & 0.057 & 0.047 & 0.778 & 0.163 & 0\\
+4 & $\ge1.5$ cycles & 92 / 76 & 0.160 & 0.043 & 0.057 & 0.001 & 0.109 & 0.073 & 0\\
+5 & $A<a_1/c\,(M_2=2\,\Msun)$ & \textbf{75 / 69} & 0.160 & 0.026 & 0.022 & 0.001 & 0.090 & 0.025 & 0\\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{enumerate}[leftmargin=*]
-\item \textbf{$D>40$.} With 17{,}492 stars, fewer than one white-noise false alarm requires a per-star false-alarm
-probability below $\sim6\times10^{-5}$, i.e.\ well beyond the largest null value ($D=23$ in 2{,}944 simulations).
+\item \textbf{$D>40$.} With 17{,}488 stars, fewer than one white-noise false alarm requires a per-star false-alarm
+probability below $\sim6\times10^{-5}$, i.e.\ well beyond the largest null value ($D=23$ in 2{,}998 simulations).
 $D>40$ is chosen conservatively high because the real contaminants are not white noise; lowering it mainly admits
 more intrinsic period changes (panel a).
 \item \textbf{Amplitude constancy, $\chi^2_\nu(\alpha)<2$.} Motivated by the physics: the LTTE is a pure time shift
 (\cref{fig:lc}), so any season-to-season amplitude change points to Blazhko modulation (or changing blends). The cut
-removes 80\% of simulated Blazhko stars that passed cut 1 (0.210 $\to$ 0.042) while keeping 99\% of the orbits
-(0.230 $\to$ 0.227), and 56\% of real stars with $D>40$.
+removes 79\% of simulated Blazhko stars that passed cut 1 (0.316 $\to$ 0.065) while keeping 99\% of the orbits
+(0.304 $\to$ 0.302), and 64\% of real stars with $D>40$. It removes \emph{no} empirical-noise simulations, because that class
+has no amplitude modulation, whereas it removes most real high-$D$ stars; this matters for the contamination estimate (\cref{sec:partB}).
 \item \textbf{$A/\sigma_{\rm season}>3$.} The orbital amplitude must be large compared with a single season's error, so
-that the curve is seen season by season and is not only an integrated excess; this mainly guards against
-low-amplitude, high-jitter solutions and has little effect after cuts 1--2.
+that the curve is seen season by season and is not only an integrated excess; it mainly guards against
+low-amplitude, high-jitter solutions.
 \item \textbf{At least 1.5 orbital cycles.} The decisive cut against intrinsic period changes: a sinusoid fitted over
-less than about one cycle mimics a smooth trend. It removes 89\% of the large abrupt period changes (0.604 $\to$
-0.068) and 63\% of the large random walks, at the cost of a third of the simulated orbits --- those with periods longer than
-about $2/3$ of the baseline, which cannot be confirmed as periodic anyway.
+less than about one cycle mimics a smooth trend. It removes 86\% of the large abrupt period changes (0.778 $\to$ 0.109),
+55\% of the large random walks and 58\% of the empirical noise, at the cost of a third of the simulated orbits: those with
+periods longer than about 2/3 of the baseline, which cannot be confirmed as periodic anyway.
 \item \textbf{Physical ceiling.} The fitted amplitude must be achievable with $M_2\le2\,\Msun$ at the fitted period
-(panel c). At this stage it removes no simulated orbits (0.136 $\to$ 0.136) but most of the remaining large random walks
-(0.023 $\to$ 0.005) and 19 real stars. Over the full sample 4.5\% of true orbits exceed the ceiling because of noise;
-the cost is measured, and the cut is applied identically to data and simulations.
+(panel c). At this stage it removes no simulated orbits but 2/3 of the remaining large random walks (0.073 $\to$ 0.025)
+and 17 real stars. The cut is applied identically to data and simulations.
 \end{enumerate}
 \noindent The cuts were set on physical grounds and on the simulations, not tuned on the real candidates. They are not
-a clean binary selection: large abrupt period changes still pass at 5.6\% and Blazhko at 2.5\% (\cref{tab:cuts}), and
-their true incidence among LMC RRab is unknown.
+a clean binary selection: large abrupt period changes still pass at 9\%, the empirical noise at 2.6\% and Blazhko at 2.2\%
+(\cref{tab:cuts}). How many of the real candidates are expected from noise alone is the subject of \cref{sec:partB}.
 
 %==============================================================================
-\section{Status}\label{sec:status}
-\begin{itemize}[leftmargin=*]
-\item \textbf{Candidates:} 69 stars (62 with MACHO), 65 of which were also selected before the period-grid fix. Several show
-smooth \OC\ curves over two or more cycles (\cref{fig:cand}); periods 2.3--13.8\,yr (median 10.9\,yr); implied $M_{2,\min}=0.11$--$2.0\,\Msun$
-and $K_1=1.8$--$16.5\,\kms$.
-\item \textbf{Completeness} of the cuts for isotropic orbits (half eccentric), MACHO+OGLE cadence:
-$M_2=0.4$--$1.5\,\Msun$: 46\% ($P_{\rm orb}=0.8$--3\,kd), 34\% (3--10\,kd); $M_2=0.15$--$0.4\,\Msun$: 7\% and 12\%;
-$M_2<0.15\,\Msun$: $\le1\%$.
-\item \textbf{Upper limit} (all 62 MACHO candidates treated as binaries; 95\% Poisson limit 76.6 of 6{,}614 stars):
-$f<2.8\%$ for $M_2=0.4$--$1.5\,\Msun$ and $f<11\%$ for $M_2=0.15$--$0.4\,\Msun$, both at $P_{\rm orb}=1$--10\,kd.
-\item \textbf{Not yet a measurement:} the population mixture fit of the binary fraction is only weakly identified (it
-depends on the assumed nuisance shapes by a factor $\gtrsim2$). The main contaminant is large abrupt period changes.
-\end{itemize}
+\section{Part B: what the population says}\label{sec:partB}
+
+Part B runs the full pipeline on simulated stars (\cref{sec:selection}) to measure, with the same cuts as for the data,
+how often each kind of signal passes, how complete the selection is for real orbits, and how many candidates the real stars'
+own timing noise produces. Scripts: \texttt{scripts/partB\_analysis.py} (\texttt{results/partB/summary.json},
+\texttt{completeness.csv}), \texttt{scripts/partB\_bkg\_limit.py}, \texttt{scripts/plot\_partB.py} (\cref{fig:partB}).
 
 \begin{figure}[h]
-\centering\includegraphics[width=\textwidth]{02_OGLE-LMC-RRLYR-08101.png}
-\caption{Example candidate sheet. A, B: delay-corrected folds (OGLE $I$, MACHO $B$) with templates. C: raw OGLE points on the
-rising branch in the seasons of maximum and minimum orbital delay, with the period change removed --- the whole waveform
-is shifted by about an hour. D: \OC\ with the circular-orbit fit and residuals (error bars include the fitted jitter).
-E: $D(P_{\rm orb})$. F: season amplitudes.}
-\label{fig:cand}
+\centering\includegraphics[width=\textwidth]{partB_summary.png}
+\caption{Part B, MACHO stars (6{,}612 real; 26{,}982 simulations). (a) Survival function of $D$: real stars (thick grey)
+against simulated classes; the empirical-noise class (red) follows the real distribution. (b) Fraction of each simulated
+class passing the candidate cuts (solid) and the Tier-1 proxy (hatched); white noise passes neither (plotted at the
+$10^{-4}$ floor). (c) Real candidates against the number expected from the empirical timing noise, at three stages; the
+amplitude veto is corrected with the real stars' pass fraction (see text); error bars are Poisson. (d) Completeness of the
+candidate cuts for injected LTTE orbits (isotropic, half eccentric) by orbital period and companion mass.}
+\label{fig:partB}
 \end{figure}
+
+\subsection{The empirical noise reproduces the real stars}
+Among MACHO stars, the fraction with $D$ above 10, 20, 40, 80 is 0.752, 0.327, 0.123, 0.017 for the real stars and
+0.783, 0.325, 0.105, 0.015 for the empirical-noise simulations; white noise gives 0.243, 0.002, 0, 0 (\cref{fig:partB}a).
+The whole high-$D$ tail of the real population, including the region of the candidates, is therefore what the measured
+intrinsic timing noise produces. Pure noise (null) never passes the cuts.
+
+\subsection{How many candidates does noise alone produce?}
+The empirical class has no amplitude modulation, so it passes the amplitude veto (cut~2) almost always, whereas only 46\% of
+the real stars that pass the other four cuts also pass it. Real timing noise often comes with Blazhko-like amplitude
+changes. The comparison is therefore made in two ways (\cref{fig:partB}c):
+\begin{itemize}[leftmargin=*]
+\item \textbf{All cuts except the amplitude veto} (where the empirical class is a valid background model): 150 real MACHO
+stars against $171\pm13$ expected from noise ($0.0259\times6612$, Poisson error).
+\item \textbf{All cuts, the veto corrected} with the real pass fraction (0.46): 69 real candidates against $\approx79\pm9$.
+\item \textbf{Tier-1 proxy} (all cuts, $\chi^2_\nu(\alpha)<1.5$, coherence $\chi^2_\nu<1.5$, predictive score $>2$; the
+Keplerian-fit and crowding criteria of Part C cannot be applied to simulations), veto corrected with the real pass fraction
+of this stricter cut (0.33): 17 real against $\approx24\pm5$.
+\end{itemize}
+In none of these is there an excess of orbit-like signals over the timing noise. The OGLE-only sample (10{,}876 stars) has 6
+candidates against 14 expected (95\% upper bound 31), and no star passes the Tier-1 proxy (OGLE-only stars have no predictive test).
+
+\textbf{Caveat (circularity).} The empirical noise is drawn from the REML noise fits of the real stars (candidates excluded).
+Undetected orbits in the other stars are absorbed into those fits, so the noise model can contain some orbital signal. This
+makes the background estimate conservative for detection, but it means that the population comparison cannot by itself prove
+that \emph{no} candidate is a binary. The veto correction assumes that binaries and noise pass the amplitude veto at the same
+rate in the real data; a planned refinement adds measured amplitude modulation to the empirical class so that the veto is
+calibrated directly.
+
+\subsection{Completeness}
+For injected orbits (MACHO stars, isotropic, half eccentric; \cref{fig:partB}d), the cuts recover $M_2=0.4$--$1.5\,\Msun$
+companions at 11\% (400--1000\,d), 56\% (1--3\,kd) and 41\% (3--10\,kd); $M_2=0.15$--$0.4\,\Msun$ at 0.5\%, 10\% and 15\%; and
+$M_2<0.15\,\Msun$ at $\le2\%$. For OGLE-only stars (baseline 1997/2001--2016) the completeness is far lower: 2\%, 13\% and 2\%
+for $M_2=0.4$--$1.5\,\Msun$, because of the shorter baseline and the 1.5-cycle cut.
+
+\subsection{Upper limits on the binary fraction}
+For $M_2=0.4$--$1.5\,\Msun$ and $P_{\rm orb}=1$--10\,kd (completeness 0.478 for MACHO stars):
+\begin{itemize}[leftmargin=*]
+\item \textbf{Model-free} (every candidate treated as a binary; 95\% Poisson upper limit on 69 is 84.3):
+$f<84.3/(6612\times0.478)=2.7\%$ for MACHO stars and $f<1.5\%$ for OGLE-only stars (6 candidates, low completeness).
+For $M_2=0.15$--$0.4\,\Msun$: $f<9.9\%$ (MACHO) and $<11\%$ (OGLE-only).
+\item \textbf{Background-subtracted} (150 stars before the amplitude veto, background $b=171$ with a Gaussian systematic
+uncertainty, flat prior on the signal, Poisson likelihood): $f<1.4\%$, 2.4\% and 4.1\% for a 15\%, 25\% and 50\%
+systematic on $b$. These depend on the noise model and are quoted as a range.
+\end{itemize}
+The binary fraction of LMC RRab with massive companions on 3--30-yr orbits is therefore at most a few per cent.
+\textbf{Context.} The rotating, disc-like RR Lyrae of the Milky Way behave like a young, metal-rich thin-disc population
+\citep{Iorio2021}; the most metal-rich ones ([Fe/H] $>-0.5$) have kinematic ages of $\sim$6--7\,Gyr \citep{Zhang2025}. Binary
+evolution can produce such stars: partial envelope stripping on the red-giant branch places them in the instability strip, and
+all metal-rich RR Lyrae are then predicted to have an A-, F-, G- or K-type companion with $P_{\rm orb}>1000$\,d
+\citep{Bobrick2024}, typically $\sim$900--2000\,d \citep{Iorio2026}. Gaia DR3 astrometry shows some tension with a high hidden
+binary fraction \citep{Iorio2026}. Our search is most complete in this regime of period and companion mass (56\% at 1--3\,kd for
+$M_2=0.4$--$1.5\,\Msun$). The LMC RRab are, however, dominated by old, metal-poor stars, so these limits apply to the population as
+a whole and do not test the metal-rich binary channel directly.
+
+\textbf{Implication.} Population statistics give a limit, not a detection. Whether any individual candidate is a binary can
+only be decided with more data: further orbital cycles (OGLE-IV after 2016, \cref{sec:pred}), Gaia DR4 photometry
+(\cref{sec:hajdu}) and radial velocities.
 
 %==============================================================================
 \section{Part C: the candidates compared with the Galactic-bulge sample}\label{sec:hajdu}
 
 This section uses the v3 pipeline (Part A of the refit: MACHO $R$, harmonic coherence, whole-cycle band alignment, band-lag
-priors, smooth-wander noise model). Selection thresholds and contamination rates are \textbf{provisional} until the v3
-simulations (Part B) are complete. Scripts: \texttt{scripts/partC\_*.py}, \texttt{compare\_hajdu.py}, \texttt{gaia\_timing*.py}.
+priors, smooth-wander noise model); the contamination rates are those of Part B (\cref{sec:partB}). Scripts: \texttt{scripts/partC\_*.py}, \texttt{compare\_hajdu.py}, \texttt{gaia\_timing*.py}.
 
 \subsection{Our v3 candidates in brief}
 The cuts of \cref{tab:cuts} applied to the v3 statistics select 75 stars (69 with MACHO). Each was fitted with a full Keplerian
@@ -426,6 +516,16 @@ coherence $\chi^2_\nu<1.5$; no crowding flag; predictive score $>2$. All have MA
 $P_{\rm orb}=5.4$--$14.5$\,yr, $e=0.15$--$0.57$, $M_{2,\min}=0.14$--$0.96\,\Msun$, $K_1=2.5$--$11.5\,\kms$, $V=19.2$--$19.7$.
 \item \textbf{Tier 2} (17): at most one soft flag; predictive score $>0$ or unavailable. \textbf{Tier 3} (47): the rest.
 \end{itemize}
+Diagnostic sheets for all 75 are in \texttt{plots/partC/sheets/}; \cref{fig:cand} shows one Tier-1 example.
+
+\begin{figure}[h]
+\centering\includegraphics[width=\textwidth]{25_OGLE-LMC-RRLYR-10449.png}
+\caption{Candidate sheet for the Tier-1 star 10449. A: \OC\ after removing the quadratic and the MACHO offsets (common mode
+removed, bands aligned), with the Keplerian ($P=4187$\,d, $e=0.15$) and circular fits; OGLE $I$, MACHO $B$, MACHO $R$; below,
+residuals. C: $D$ against trial orbital period. D: per-season amplitude factors $\alpha_j$ by band. E: harmonic coherence by
+band. Both D and E are consistent with a pure time shift.}
+\label{fig:cand}
+\end{figure}
 
 \subsection{The bulge sample of Hajdu et al.\ (2021)}
 \citet{Hajdu2021} examined $\sim$27{,}500 OGLE-III/IV O$-$C diagrams of bulge RRab (data to 2019; mean/median baselines 10.5/7.4\,yr),
@@ -486,14 +586,14 @@ produces one or two bumps over 24\,yr, which a sinusoid plus a quadratic fits.
 \item \textbf{An out-of-sample prediction passed} (1992--1996 MACHO seasons). A partial safeguard only: smooth wander can continue
 smoothly into the held-out years (simulated wander passes the full Tier-1 proxy $\sim$1\% of the time).
 \item \textbf{Calibrated contamination}: simulations with a noise model matched to the real stars. This is what shows that the
-candidate \emph{number} is consistent with wander alone (Part B, \cref{sec:status}); the bulge analysis has no such calibration.
+candidate \emph{number} is consistent with wander alone (Part B, \cref{sec:partB}); the bulge analysis has no such calibration.
 \end{enumerate}
 \paragraph{Where they are alike.} Our sensitivity limit ($A\gtrsim350$\,s) restricts us to the high-amplitude regime of the
 bulge Q1 class: medians $A\approx800$\,s, $M_{2,\min}\approx0.45$--$0.5\,\Msun$, $K_1\approx6\,\kms$ in both
 (\cref{fig:hajdu}a, f). We cannot test the low-mass Q2/Q3 population ($M_{2,\min}\sim0.1$--$0.2\,\Msun$).
 
 \paragraph{Expectation.} The v3 simulations (Part B) show that the number of our candidates is consistent with the tail of the
-real stars' own timing noise (69 observed vs $\sim$80 expected from noise at the candidate cuts; 24 vs $\sim$33 for a Tier-1 proxy).
+real stars' own timing noise (69 observed vs $\approx79$ expected from noise at the candidate cuts; 17 vs $\approx24$ for a Tier-1 proxy; \cref{sec:partB}).
 Neither sample therefore establishes binarity statistically; the same is likely true of the bulge sample, whose selection was not
 calibrated against intrinsic wander. What separates an orbit from wander is strict repetition over more cycles, i.e.\ more data. Confirmation is, however, harder: at $V\approx19.4$,
 measuring $K_1\sim6\,\kms$ requires $\sim$1--2\,\kms\ per epoch after removing a $\sim$60\,\kms\ pulsation curve
@@ -512,8 +612,83 @@ by chance from the control tail. DR3 is too sparse for most orbits.
 \item \textbf{DR4 forecast} (expected December 2026; 2014.6--2020.1, \emph{assumed} $\sim$2$\times$ the DR3 epochs; bins 2014.6--2017.4
 and 2017.4--2020.1, the latter entirely after the public OGLE-IV data): testable at $>2\sigma$ for 6 of 9 Tier~1 (5 at $>3\sigma$),
 8 of 13 Tier~2, 13 of 31 Tier~3. DR4 can therefore confirm or reject most of the strongest candidates photometrically, at no
-observing cost. OGLE-IV photometry after 2016 (not public) would be a stronger test still.
+observing cost. OGLE-IV photometry after 2016 (not public) would be a stronger test still (\cref{sec:pred}).
 \end{itemize}
+
+%==============================================================================
+\section{Frozen predictions and the OGLE data after 2016}\label{sec:pred}
+
+\subsection{OGLE kept observing the LMC}
+The public OCVS light curves of the original catalogue stars end at HJD$'\approx7516$ (2016.4). OGLE-IV observed the LMC
+continuously until March 2020, resumed in August 2022 and is still operating; the catalogue extensions of 2017/2019 (1{,}432
+stars) carry public data to 2020.2 and show 26--110 epochs per season in our candidates' fields
+(\texttt{scripts/ogle\_post2016\_cadence.py}). A high-cadence survey of the central LMC fields ran from October 2022 to May 2024
+\citep{Mroz2024}. Its field list (LMC502, 503, 509, 510, 516) is from an agent's reading of the paper and has not been checked.
+These fields host 49 of the 75 candidates, including 7 of the 11 Tier-1 stars. At $\sim$2400 epochs per season the expected
+delay error is $132\,{\rm s}\times\sqrt{54/2400}\approx20$\,s per season, against 132\,s now. These data are available only on
+request from the OGLE team; a request for all LMC OCVS RR Lyrae has been drafted (\texttt{docs/ogle\_request\_email\_short.md}).
+
+\subsection{What is frozen}
+Before any new data are seen, the predicted OGLE $I$ delays for 2016.4--2026.5 have been computed for the 28 Tier-1/2
+candidates from the public data alone (\texttt{scripts/freeze\_predictions.py}, \texttt{src/rrlbin/predict.py}), under both hypotheses:
+\begin{itemize}[leftmargin=*]
+\item $H_1$: the best Keplerian orbit, plus the smooth-wander GP refitted to the orbit-subtracted delays;
+\item $H_0$: no orbit, with the star's own REML GP noise model (\cref{sec:nuis}).
+\end{itemize}
+Each is a universal-kriging prediction (GP conditional mean and covariance, including the uncertainty of the quadratic and
+MACHO offsets); the full covariances are stored. A residual bootstrap of the Keplerian fit (200 refits) is stored as well. Note
+that the $H_1$ kriging covariance is conditional on the best-fit orbit, so the bootstrap envelope should be added when new
+data are compared. The table \texttt{results/predictions/predictions\_2026-10-01.parquet} has SHA-256
+\texttt{a79bc756\ldots607813d}, recorded with the code commit in \texttt{\_meta.json}, and is tagged
+\texttt{predictions-2026-10-01} in the repository. The predictive standard deviations (medians) are 179\,s (2020) and 282\,s
+(2024) under $H_1$, and 1.6\,ks and 2.8\,ks under $H_0$ (\cref{fig:pred}).
+
+\begin{figure}[h]
+\centering\includegraphics[width=\textwidth]{OGLE-LMC-RRLYR-10449.png}
+\caption{Frozen prediction for the Tier-1 candidate 10449 ($P_{\rm orb}=4187$\,d, $e=0.15$, $A=1176$\,s; its \OC\ in the orbit
+frame is in \cref{fig:cand}). Points: public data in the OGLE $I$ gauge (MACHO offsets removed). Grey: $H_1$ (orbit + red noise),
+$\pm2\sigma$; red: $H_0$ (no orbit, red noise), $\pm2\sigma$; dotted line: end of the public data.}
+\label{fig:pred}
+\end{figure}
+
+\subsection{How decisive will the new data be?}
+For new OGLE season delays (130\,s error plus each star's white jitter), the expected log Bayes factor is the Kullback--Leibler
+divergence between the two predictive distributions: $\langle\ln{\rm BF}\rangle={\rm KL}(N_1\|N_0)$ if the orbit is real and
+$-{\rm KL}(N_0\|N_1)$ if it is not (\texttt{scripts/predictions\_decisiveness.py}). Medians:
+\begin{center}\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{2017--2020 (3 seasons)} & \multicolumn{2}{c}{2017--2026 (7 seasons)}\\
+& orbit real & no orbit & orbit real & no orbit\\
+\midrule
+Tier 1 (11) & $+4.0$ (7/11 $>3$) & $-53$ & $+8.4$ (11/11 $>3$) & $-200$\\
+Tier 2 (17) & & & $+7.2$ (17/17 $>3$) & $-101$\\
+\bottomrule
+\end{tabular}
+\end{center}
+These numbers assume 130\,s per season (the high-cadence fields would give $\approx20$\,s) and the noise model of
+\cref{sec:nuis}. They are optimistic to the extent that the $H_1$ covariance omits the orbit-parameter uncertainty. Even so,
+the 2017--2026 OGLE data would confirm or reject every Tier-1/2 candidate. The asymmetry is expected: a wandering star almost
+never follows a specific narrow orbital prediction for a decade, whereas a true orbit is only moderately unlikely under the
+broad $H_0$.
+
+%==============================================================================
+\section{Summary and next steps}\label{sec:summary}
+\begin{itemize}[leftmargin=*]
+\item We measured per-season pulsation delays for 17{,}488 LMC RRab (OGLE-II/III/IV 1997--2016; MACHO $B$, $R$ 1992--1999 for
+6{,}612) and searched the \OC\ diagrams for light-travel-time orbits.
+\item 75 stars pass the candidate cuts (11 Tier 1, 17 Tier 2). The Tier-1 orbits have $P_{\rm orb}=5.4$--14.5\,yr, $A=350$--1380\,s
+and $M_{2,\min}=0.14$--$0.96\,\Msun$.
+\item The real stars carry red, mostly intrinsic timing noise. Simulations with that noise reproduce the real $D$ distribution
+and predict as many candidates as are observed: there is no population excess. The binary fraction for
+$M_2=0.4$--$1.5\,\Msun$, $P_{\rm orb}=1$--10\,kd is below 2.7\% (model-free; 1.4--4.1\% background-subtracted).
+\item Individual candidates are untested, like the bulge candidates of \citet{Hajdu2021}. Predictions for 2016--2026 are frozen;
+OGLE-IV data after 2016 would decide every Tier-1/2 candidate, and Gaia DR4 most Tier-1 ones.
+\end{itemize}
+\textbf{Next steps.} (1) Add amplitude modulation, drawn from the real stars' $\alpha_j$ variability, to the empirical noise class,
+and re-run the Part B comparison with the amplitude veto calibrated directly. (2) Obtain the post-2016 OGLE-IV photometry and
+test the frozen predictions; re-run the full analysis on the 1992--2026 baseline. (3) Test the Tier-1 candidates with Gaia DR4
+epoch photometry. Season-level outlier rejection in Level 2 is a minor open item (e.g.\ one bad MACHO $R$ season of 13854).
 
 %==============================================================================
 \begin{thebibliography}{99}\small
@@ -529,7 +704,12 @@ observing cost. OGLE-IV photometry after 2016 (not public) would be a stronger t
 \bibitem[Prudil et al.(2019)]{Prudil2019} Prudil Z., et al., 2019, MNRAS, 487, L1. \url{https://doi.org/10.1093/mnrasl/slz069}
 \bibitem[Li\v{s}ka et al.(2016)]{Liska2016} Li\v{s}ka J., et al., 2016, A\&A, 589, A94 (TU UMa).
 \url{https://doi.org/10.1051/0004-6361/201525870}
-\bibitem[Bobrick et al.(2024)]{Bobrick2024} Bobrick A., et al., 2024, MNRAS, 527, 12196 (RR Lyrae from binary evolution).
+\bibitem[Bobrick et al.(2024)]{Bobrick2024} Bobrick A., Iorio G., Belokurov V., et al., 2024, MNRAS, 527, 12196 (RR Lyrae from binary evolution). \url{https://doi.org/10.1093/mnras/stad3996}, \url{https://arxiv.org/abs/2208.04332}
+\bibitem[Iorio \& Belokurov(2021)]{Iorio2021} Iorio G., Belokurov V., 2021, MNRAS, 502, 5686 (chemo-kinematics of the Gaia RR Lyrae). \url{https://doi.org/10.1093/mnras/stab005}, \url{https://arxiv.org/abs/2008.02280}
+\bibitem[Zhang et al.(2025)]{Zhang2025} Zhang H., Iorio G., Belokurov V., et al., 2025, MNRAS, 544, 2493 (ages of metal-rich RR Lyrae). \url{https://doi.org/10.1093/mnras/staf1789}, \url{https://arxiv.org/abs/2504.06720}
+\bibitem[Iorio et al.(2026)]{Iorio2026} Iorio G., Nagarajan P., Bobrick A., et al., 2026, A\&A, 712, A223 (detectability of RR Lyrae binaries in Gaia). \url{https://doi.org/10.1051/0004-6361/202659978}, \url{https://arxiv.org/abs/2603.20429}
+\bibitem[Michalska \& Pigulski(2005)]{Michalska2005} Michalska G., Pigulski A., 2005, A\&A, 434, 89 (MACHO epochs = exposure start). \url{https://doi.org/10.1051/0004-6361:20042343}
+\bibitem[Mr\'oz et al.(2024)]{Mroz2024} Mr\'oz P., Udalski A., Szyma\'nski M.\,K., et al., 2024, ApJL, 976, L19 (OGLE high-cadence Magellanic survey). \url{https://doi.org/10.3847/2041-8213/ad8e68}, \url{https://arxiv.org/abs/2410.06251}
 \url{https://doi.org/10.1093/mnras/stad3996}
 \bibitem[Salinas et al.(2026)]{Salinas2026} Salinas R., Kalari V., Hajdu G., Prudil Z., et al., 2026, ``Finding the elusive RR Lyrae companions
 via speckle imaging''. \url{https://arxiv.org/abs/2603.28684}

@@ -51,6 +51,8 @@ def main():
     ap.add_argument("--src", default="results/real/oc_all_cm.parquet")
     ap.add_argument("--sims", nargs="+", default=["results/inject/macho_v2.parquet"])
     ap.add_argument("--fig", default="plots/summary_stats.png")
+    ap.add_argument("--sim-amp", default="amp_best_s", help="fitted-amplitude column of the sims (v3: amp_circ_s)")
+    ap.add_argument("--cand-out", default="results/real/candidates.csv")
     a = ap.parse_args()
     r = pd.read_parquet(a.src)
     r = r[r.ok].drop(columns=["t", "tau", "err", "flag", "alpha", "alpha_err"], errors="ignore").copy()
@@ -58,7 +60,7 @@ def main():
     r = r.join(fr)
     s = pd.concat([pd.read_parquet(f) for f in a.sims], ignore_index=True)
     s = s[~s.kind.isin(["error", "real"])].drop(columns=["t", "tau", "err", "flag"], errors="ignore").copy()
-    s = s.join(cut_flags(s, "amp_best_s", s.baseline if "baseline" in s else 8350.0))
+    s = s.join(cut_flags(s, a.sim_amp, s.baseline if "baseline" in s else 8350.0))
 
     c = r[r["all"]].copy()
     c["fM"] = mass_function(c.P_best, c.amp_s)
@@ -66,7 +68,7 @@ def main():
     c["K1_kms"] = 2 * np.pi * c.amp_s * 299792.458 / (c.P_best * 86400)
     c["snr_tot"] = c.amp_s / np.hypot(c.err_med_s, c.jit0_s)
     c = c.sort_values("snr_tot", ascending=False)
-    c.to_csv("results/real/candidates.csv", index=False)
+    c.to_csv(a.cand_out, index=False)
 
     # funnel
     print("selection funnel (real; all / with MACHO):")
@@ -148,7 +150,7 @@ def main():
     plt.colorbar(sc, ax=ax[7], label="log10 D")
     fig.tight_layout()
     fig.savefig(a.fig, dpi=110)
-    print("figure:", a.fig, "; candidates:", len(c), "-> results/real/candidates.csv")
+    print("figure:", a.fig, "; candidates:", len(c), "->", a.cand_out)
 
 
 if __name__ == "__main__":
