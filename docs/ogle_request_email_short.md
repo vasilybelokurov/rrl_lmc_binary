@@ -22,7 +22,7 @@ Vasily Belokurov
 Institute of Astronomy, University of Cambridge
 
 References
-- Iorio G., Belokurov V., 2021, MNRAS, 502, 5686 — https://arxiv.org/abs/2008.02280
-- Bobrick A., Iorio G., Belokurov V., et al., 2024, MNRAS, 527, 12196 — https://arxiv.org/abs/2208.04332
-- Zhang H., Iorio G., Belokurov V., et al., 2025 — https://arxiv.org/abs/2504.06720
-- Iorio G., Nagarajan P., Bobrick A., et al., 2026 — https://arxiv.org/abs/2603.20429
+- Iorio G., Belokurov V., 2021, MNRAS, 502, 5686 — https://arxiv.org/abs/2008.02280, https://doi.org/10.1093/mnras/stab005
+- Bobrick A., Iorio G., Belokurov V., et al., 2024, MNRAS, 527, 12196 — https://arxiv.org/abs/2208.04332, https://doi.org/10.1093/mnras/stad3996
+- Zhang H., Iorio G., Belokurov V., et al., 2025, MNRAS, 544, 2493 — https://arxiv.org/abs/2504.06720, https://doi.org/10.1093/mnras/staf1789
+- Iorio G., Nagarajan P., Bobrick A., et al., 2026, A&A, 712, A223 — https://arxiv.org/abs/2603.20429, https://doi.org/10.1051/0004-6361/202659978
