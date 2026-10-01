@@ -60,3 +60,25 @@ def test_rv_from_delay_matches_keplerian_velocity():
     K = 2 * np.pi * C_KMS * A / (P * np.sqrt(1 - e ** 2))
     analytic = K * (np.cos(nu + w) + e * np.cos(w))
     assert np.max(np.abs(rv_from_delay(t, P, A, e, w, tp, h=0.05) - analytic)) < 0.01 * K
+
+
+def test_bootstrap_prediction_covers_truth():
+    """On a simulated orbit, the 95% bootstrap envelope of the extrapolated (out-of-sample) O-C covers the true curve
+    for most of the prediction window."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from rrlbin.kepler_fit import bootstrap_predictions
+    from rrlbin.ltte import ltte_delay
+    DAY = 86400.0
+    rng = np.random.default_rng(5)
+    t = np.array([245 + 365.25 * (y - 1998) + 180 + rng.normal(0, 40) for y in range(1992, 2016)])
+    band = np.where(t < 1600, 1, 0)
+    err = np.full(t.size, 150 / DAY)
+    truth = lambda x: ltte_delay(x, 3000.0, 1000 / DAY, 0.3, 1.0, 400.0) + 1e-10 * (x - 3000) ** 2
+    y = truth(t) + np.where(band == 1, -1500 / DAY, 0) + rng.normal(0, 1, t.size) * err
+    tp = np.linspace(7600, 11000, 40)
+    best, cur = bootstrap_predictions(t, y, err, band, 3000.0, tp, priors={1: (-1500 / DAY, 300 / DAY)}, n_boot=80)
+    lo, hi = np.percentile(cur, [2.5, 97.5], axis=0)
+    # compare shapes up to the free constant (the model's c0 is absorbed differently from truth's): remove the mean in-sample offset
+    off = np.median((best - truth(tp))[:3])
+    cover = np.mean((truth(tp) + off >= lo) & (truth(tp) + off <= hi))
+    assert cover > 0.8

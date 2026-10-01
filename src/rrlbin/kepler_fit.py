@@ -37,7 +37,7 @@ def _linear(t, tau, sig, band, q, priors):
     return beta, names, y - A @ beta, X
 
 
-def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, seed=0, circular=False):
+def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, seed=0, circular=False, x0=None):
     """Best Keplerian fit near P0 (period searched over 0.6-1.6 P0). Returns a dict with P, A [s], e, omega, t_p, chi2,
     the linear coefficients, the model, and bootstrap percentiles (16, 50, 84) of P, A, e, f(M), K1."""
     t, tau, err, band = map(np.asarray, (t, tau, err, band))
@@ -63,7 +63,7 @@ def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, see
 
     starts = [[np.log(P0 * f), np.sqrt(e) * np.cos(w), np.sqrt(e) * np.sin(w), ph]
               for f in (0.75, 0.9, 1.0, 1.15, 1.35) for e in (0.0, 0.3, 0.6) for w in ((0.0,) if e == 0 else (0.0, 1.6, 3.1, 4.7))
-              for ph in (0.0, 0.25, 0.5, 0.75)]
+              for ph in (0.0, 0.25, 0.5, 0.75)] if x0 is None else [list(x0)]
     if not np.isfinite(P0) or P0 <= 0:
         raise ValueError(f"invalid starting period {P0}")
     r = best_fit(tau, starts)
@@ -72,7 +72,7 @@ def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, see
     q = np.array([r.x[0], 0.0, 0.0, r.x[1]]) if circular else r.x
     beta, names, res, X = _linear(t, tau, sig, band, q, priors)
     P, e, w, ph = _unpack(q)
-    out = dict(P=P, A_s=beta[names.index("A")] * DAY, e=e, omega=w, t_p=ph * P, chi2=float(np.sum(res ** 2)),
+    out = dict(P=P, A_s=beta[names.index("A")] * DAY, e=e, omega=w, t_p=ph * P, chi2=float(np.sum(res ** 2)), x=np.asarray(r.x),
                n=int(t.size), k=len(beta) + (2 if circular else 4), model=X @ beta, names=names, beta=beta)
     if out["A_s"] < 0:   # sign degeneracy A -> -A with omega -> omega + pi
         out["A_s"], out["omega"] = -out["A_s"], np.mod(w + np.pi, 2 * np.pi)
@@ -97,3 +97,36 @@ def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, see
         for name, v in [("P", B[:, 0]), ("A_s", B[:, 1]), ("e", B[:, 2]), ("fM", fM), ("K1", K1)]:
             out[f"{name}_p16"], out[f"{name}_p50"], out[f"{name}_p84"] = np.percentile(v, [16, 50, 84])
     return out
+
+
+def predict_ogle(fit, t, band, sig, t_pred):
+    """OGLE-I-band (band 0: no MACHO offsets) prediction of the full delay model (quadratic + orbit) at t_pred [d],
+    from a fit_keplerian result obtained on (t, band, sig)."""
+    from .oc import design
+    t_ref = np.average(t, weights=sig ** -2)
+    Xp, names = design(np.asarray(t_pred, float), np.zeros(len(t_pred), int), t_ref)
+    b = np.asarray(fit["beta"])
+    nb = fit["names"]
+    quad = sum(b[nb.index(k)] * Xp[:, names.index(k)] for k in ("q2", "q1", "q0"))
+    orb = ltte_delay(np.asarray(t_pred, float), fit["P"], fit["A_s"] / DAY, fit["e"], fit["omega"], fit["t_p"])
+    return quad + orb
+
+
+def bootstrap_predictions(t, tau, err, band, P0, t_pred, s_jit=0.0, priors=None, n_boot=200, seed=0):
+    """Residual-bootstrap envelope of the OGLE-band predicted delay curve at t_pred [d]: refits the Keplerian model to
+    model + resampled (error-normalized) residuals. Returns (best-fit prediction, array (n_boot, len(t_pred)))."""
+    t, tau, err, band = map(np.asarray, (t, tau, err, band))
+    sig = np.sqrt(err ** 2 + s_jit ** 2)
+    best = fit_keplerian(t, tau, err, band, P0, s_jit=s_jit, priors=priors, n_boot=0, seed=seed)
+    p_best = predict_ogle(best, t, band, sig, t_pred)
+    rng = np.random.default_rng(seed)
+    res = (tau - best["model"]) / sig
+    curves = []
+    for _ in range(n_boot):
+        yb = best["model"] + rng.choice(res, res.size) * sig
+        try:
+            fb = fit_keplerian(t, yb, err, band, best["P"], s_jit=s_jit, priors=priors, n_boot=0, x0=best["x"])
+        except Exception:
+            continue
+        curves.append(predict_ogle(fb, t, band, sig, t_pred))
+    return p_best, np.array(curves)
