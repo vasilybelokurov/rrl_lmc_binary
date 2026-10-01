@@ -495,3 +495,22 @@ Provisional: Part-A (v3) real data; thresholds and contamination rates to be fin
 - **Tiers** `scripts/partC_tiers.py` (≥ 1.5 cycles also at the Keplerian period — 11058 had moved to P = 13.2 kd, e = 0.84): **Tier 1: 11, Tier 2: 17, Tier 3: 47.**
   Tier 1 (all MACHO+OGLE, pred > 2, clean vetoes, no crowding flag): 11538, 10449, 09642, 05821, 15158, 16187, 03269, 16750, 16755, 17610, 22630;
   P 2.0–5.3 kd, e 0.15–0.57, M2,min 0.14–0.96 Msun, K1 2.5–11.5 km/s. Note: OGLE-only stars cannot reach Tier 1 (no predictive test).
+
+---
+
+## 2026-10-01 — Our candidates vs the Hajdu+2021 bulge candidates (user request)
+- Follow-up status (subagent, docs/reviews/hajdu_followup.md; key quote verified by me on arXiv:2603.28684, Salinas+2026, co-authors Hajdu & Prudil:
+  "only a single RRL is confirmed as belonging to a binary system" — TU UMa, a field star): **none of the 87 bulge candidates has been confirmed OR refuted**;
+  no published RV follow-up of them. Field-star RV tests: Barnes+2021 (arXiv:2106.05208) 15/19 no binarity; Poretti+2025 rules out KIC 2831097.
+  Hajdu+2026 (arXiv:2512.15636) adds 1 candidate, no re-test. A non-refereed note (Zenodo 10.5281/zenodo.23048122) finds ΔBIC favours an orbit on pure noise in 72%.
+  → The user's recollection "1–2 confirmed" is not supported: the honest status is "untested".
+- Hajdu+2021 Table 1 parsed from the arXiv source (`scripts/parse_hajdu2021.py` → data/external/hajdu2021_binprop.csv: 87 rows; Q1 25, Q2 32, Q3 30).
+- `scripts/compare_hajdu.py` → results/partC/hajdu_comparison.csv, plots/partC/hajdu_comparison.png (medians):
+  | | N | P_orb [d] | A [s] | e | M2,min | K1 | σA/A | σP/P | σe | cycles |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Hajdu Q1 | 25 | 3437 | 779 | 0.27 | 0.44 | 6.5 | 0.017 | 0.005 | 0.024 | 1.9* |
+  | Hajdu Q2 | 32 | 3477 | 355 | 0.31 | 0.14 | 2.6 | 0.037 | 0.015 | 0.054 | 1.9* |
+  | Hajdu Q3 | 30 | 4910 | 534 | 0.35 | 0.20 | 3.4 | 0.092 | 0.053 | 0.065 | 1.4* |
+  | LMC Tier 1 | 11 | 2914 | 804 | 0.34 | 0.49 | 6.2 | 0.067 | 0.011 | 0.102 | 2.9 |
+  | LMC Tier 2 | 17 | 3131 | 736 | 0.32 | 0.44 | 6.2 | 0.070 | 0.016 | 0.127 | 2.4 |
+  (*Hajdu baseline assumed 6700 d.) Our candidates occupy the high-amplitude end (A ≳ 350 s; sensitivity), similar to Hajdu Q1 in A, M2,min and K1.
