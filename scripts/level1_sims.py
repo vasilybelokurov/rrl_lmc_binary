@@ -4,8 +4,9 @@ run exactly the same timing fits as for real stars and save the season series.
 
 Classes (inject_recover.draw): null, blazhko, jump, rwalk, jump_big, rwalk_big, ltte, and
   empirical : white per-season jitter s and random-walk phase with rms r, with (s, r) drawn jointly from the real stars'
-              H0 noise fits (--noise-table, columns s_red_s, rw_rms_s), i.e. timing noise with the real population's
-              distribution (it includes any real binaries' contribution to the noise fits; binaries are rare).
+              H0 noise fits (--noise-table, columns s_red_s, rw_rms_s; candidates excluded with --exclude). The jitter
+              variance is split 64% common to all bands / 36% per instrument group (MACHO B+R shared; OGLE separate), as
+              measured from same-season residual correlations of real stars; the random walk is common to all bands.
 
 Usage
 -----
@@ -32,6 +33,7 @@ from inject_recover import draw  # noqa: E402
 from level1_real import KEYS, sample_table  # noqa: E402
 
 DAY = 86400.0
+F_COMMON = 0.64      # fraction of the empirical season-jitter variance common to all bands (see noise_origin_test.py)
 
 
 def one_star(args):
@@ -49,14 +51,23 @@ def one_star(args):
         for kind, n in per_class.items():
             for _ in range(n):
                 if kind == "empirical":
-                    s_s, rw_s = noise[rng.integers(len(noise))]
+                    # noise drawn RELATIVE to the per-season timing error (real star's s/sigma, rw/sigma), rescaled by
+                    # this star's own median season error: preserves the real distribution of normalized scatter
+                    sig = np.median(np.concatenate([fits[b].tau_err for b in bands])) * DAY
+                    s_rel, rw_rel = noise[rng.integers(len(noise))]
+                    s_s, rw_s = s_rel * sig, rw_rel * sig
                     p, info = dict(pdot=rng.normal(0, 0.3)), dict(kind=kind, s_inj_s=s_s, rw_rms_s=rw_s)
                     tau, A = delay_and_amplitude(t_all, P, rng, pdot=p["pdot"])
                     if rw_s > 0:
                         tau = tau + delay_random_walk(t_all, rw_s / DAY, rng)
+                    # season jitter split as measured on real stars (scripts/noise_origin_test.py: same-season residual
+                    # correlation MACHO B-R 0.58, MACHO-OGLE 0.37 -> ~64% of the excess variance common to all bands,
+                    # ~36% shared within an instrument group (MACHO B+R) but independent between OGLE and MACHO)
                     yl = year_labels(t_all)
-                    jit = {y: rng.normal(0, s_s / DAY) for y in np.unique(yl)}
-                    tau = tau + np.array([jit[y] for y in yl])
+                    grp = np.concatenate([np.full(lcs[b][0].size, "M" if b.startswith("M") else "O") for b in bands])
+                    jc = {y: rng.normal(0, np.sqrt(F_COMMON) * s_s / DAY) for y in np.unique(yl)}
+                    jg = {(g, y): rng.normal(0, np.sqrt(1 - F_COMMON) * s_s / DAY) for g in ("M", "O") for y in np.unique(yl)}
+                    tau = tau + np.array([jc[y] + jg[(g, y)] for g, y in zip(grp, yl)])
                 else:
                     p, info = draw(kind, rng, t_all)
                     tau, A = delay_and_amplitude(t_all, P, rng, **p)
@@ -99,12 +110,13 @@ def main():
     per_class = {k: int(v) for k, v in (x.split("=") for x in a.per_class.split(","))}
     import json
     lag = json.loads(Path(a.band_lag).read_text())
-    nt = pd.read_parquet(a.noise_table, columns=["ogle_id", "has_M", "s_red_s", "rw_rms_s"])
+    nt = pd.read_parquet(a.noise_table, columns=["ogle_id", "has_M", "s_red_s", "rw_rms_s", "err_med_s"])
     if a.exclude:   # e.g. the candidate list: their fitted 'noise' may contain the orbital signal (Codex review)
         ex = set(pd.read_csv(a.exclude).ogle_id)
         nt = nt[~nt.ogle_id.isin(ex)]
         print(f"noise table: excluded {len(ex)} stars", flush=True)
-    noise = nt[nt.has_M][["s_red_s", "rw_rms_s"]].dropna().to_numpy()
+    nt = nt[nt.has_M].dropna(subset=["s_red_s", "rw_rms_s", "err_med_s"])
+    noise = np.column_stack([nt.s_red_s / nt.err_med_s, nt.rw_rms_s / nt.err_med_s])   # relative to the season error
     s = sample_table()
     s = s[s.macho_id.fillna("").str.count(r"\.").eq(2)]
     s = s.sample(n=min(a.n_stars, len(s)), random_state=a.seed).sort_values("ogle_id")

@@ -1,0 +1,13 @@
+{
+ "digest": "84973eaa3fdb2d9a67fa0841ced480e7438e0b4f67c27c143d302e5c108f2e45",
+ "script": "level1_sims",
+ "per_class": {
+  "empirical": 4
+ },
+ "seed": 44,
+ "band_lag": "results/validation_v3/band_lag.json",
+ "noise_table": "results/real/oc_all_cm.parquet",
+ "exclude": "results/real/candidates.csv",
+ "chunk": 20,
+ "n_jobs": 60
+}

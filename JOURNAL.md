@@ -437,3 +437,15 @@ Codex verified (I agree): prior pseudo-rows consistent between H0 and H1; no Lev
   Eccentric (e > 0.4): half-ptp/injected 0.87, as expected (half-ptp = a sin i/c · sqrt(1 − e² cos² ω)). D, P and the earlier detection results were unaffected.
 - Open (minor): the real-data common mode settles into a 7-s limit cycle (likely clipping-set flips).
 Tests: 32 pass.
+
+### Light-curve and timing-noise realism of the simulations (user question)
+- `scripts/compare_noise_real_sim.py` (150 stars; real vs null sims of the same stars): median per-season delay error sim/real = 0.98 (I), 1.03 (B), 0.98 (R);
+  p10–p90 ≈ 0.8–1.3 → **the photometric noise model reproduces the real timing precision.** The scatter about H0 (χ²_ν, no jitter): real p50/p90 2.0/41 (I),
+  2.3/33 (B), 2.1/25 (R) vs nulls 1.1/1.7, 1.0/1.9, 1.3/2.5 → real stars carry extra timing noise (the reason for the empirical class).
+- `scripts/noise_origin_test.py`: same-season normalized H0 residuals, real (200 OGLE-II+MACHO stars): ρ(B, R) = 0.58, ρ(MACHO, OGLE) = 0.37 (Spearman);
+  nulls: −0.05, +0.03. → the excess is largely intrinsic timing noise common to all bands, plus a MACHO-shared part.
+- Empirical class updated: season-jitter variance 64% common to all bands, 36% per instrument group (MACHO B+R shared; OGLE separate); the random walk is common;
+  noise drawn RELATIVE to the season error (s/σ, rw/σ from the real table; rescaled by the target star's σ; candidates excluded).
+  Check (60 stars × 4): ρ(B, R) = 0.63, ρ(M, O) = 0.37 (real 0.58, 0.37); χ²_ν p50 2.6/2.5/2.3 vs real 1.8/2.4/2.9; **p90 OGLE 65 vs real 18 (tail too heavy)**,
+  probably because the noise table still comes from the old pipeline (MACHO B only; large rw absorbing MACHO–OGLE discontinuities).
+  → **Acceptance test in the refit:** regenerate the noise table from the new real Level 2, re-run this comparison, and only then use the empirical class.
