@@ -470,3 +470,28 @@ Tests: 32 pass.
   MACHO stars I 1.8/18 vs 3.4/33, B 2.4/37 vs 3.6/19, R 2.9/17 vs 2.5/11; timescale test per band 2.0/4.1/13.7 vs 2.2/9.1/36, joint 2.6/10.8/67 vs 3.1/18/107
   (was ×7–10 with Brownian; now within ×1.5–2.5, sims slightly noisier → conservative for false positives); OGLE-only I 2.0/89 vs 2.3/18 (median OK, real tail heavier;
   the jump_big / rwalk_big classes cover the tail). → part B launched.
+
+---
+
+## 2026-10-01 — Part C: investigation of the candidates (plan: docs/partC_plan.md; outputs results/partC/, plots/partC/)
+Provisional: Part-A (v3) real data; thresholds and contamination rates to be finalized with Part B. ≤ 2 workers (Part B running).
+- **C1** `scripts/partC_candidates.py` (tests: v2 cuts on v2 stats reproduce the frozen 69): **75 provisional v3 candidates** (69 with MACHO).
+  v2 → v3: 51 kept (|ΔP/P| median 0.004, A ratio 1.00, D ×1.16 from MACHO R), 18 dropped (12 by the α veto now pooled over MACHO bands → MACHO-era amplitude
+  changes, i.e. Blazhko-like; others cycles/ceiling/D), 24 new. Flags: coherence > 2: 0; predictive score available 69, > 0: 31; alias-ambiguous 2; eccentric ΔD > 10: 35.
+- **C2** `scripts/partC_crowding.py` (companion Gaia DR3 match): MACHO candidates indistinguishable from MACHO-field parents (KS p: n_Gaia(2″) 0.99,
+  Σ 0.87, RUWE 0.53, ΔG−I 0.20; ipd multipeak 0.09); amplitude higher (0.68 vs 0.57 mag, p < 1e-3; selection, opposite to blending dilution).
+  The 6 OGLE-only candidates are more crowded (Σ p = 0.04; ipd multipeak median 5.5 vs 0) → caution. 18/75 carry an individual crowding flag.
+- **C3** `src/rrlbin/kepler_fit.py`, `scripts/partC_kepler.py` (variable projection + multi-start LS + residual bootstrap; test: e = 0, 0.4, 0.7 injected orbits recovered):
+  73/75 fitted (2 with absurd f(M)); e p10/50/90 = 0.17/0.37/0.86; 14 prefer eccentric (ΔBIC > 6); M2,min 0.17/0.52/1.97 Msun; K1 3.0/7.1/19 km/s; χ²_ν 0.63/1.15/1.7.
+  6 fits at the e bound (0.95) → flagged unreliable.
+- **C4** literature (subagent; docs/reviews/partC_literature.md, 31 refs Crossref-checked): no systematic Magellanic RRL binary search found (ADS full-text query
+  could not be run: HTTP 405; query given in the report). Irregular period changes are common in all populations (LMC RRc ~10% strong changes in 6.5 yr, Alcock+2000;
+  M3, M5, ω Cen). MACHO epochs = exposure START (Michalska & Pigulski 2005: +150 s) → absorbed in the band offset. Published LMC RRL RVs: 10–35 km/s per epoch
+  (FORS/GMOS); confirming K1 ~ 5–10 km/s needs ~1–2 km/s.
+- **C5** `scripts/partC_followup.py` (RV = c dτ/dt; test vs the analytic Keplerian RV): 41/73 predicted Δv_sys > 5 km/s over 2027–2030; median V 19.37.
+- **C6** `scripts/partC_sheets.py` → plots/partC/sheets/ (75 PNG): O−C with Keplerian + circular curves, residuals, D(P), α_j and coherence by band, flags;
+  results/partC/partC_table.csv. Example 13854: B, R and I follow one orbit (P = 12.7 yr, e = 0.2, pred +13.9). One bad MACHO R season (α = 0.45, coherence −6 ks)
+  → TODO: season-level outlier rejection in Level 2.
+- **Tiers** `scripts/partC_tiers.py` (≥ 1.5 cycles also at the Keplerian period — 11058 had moved to P = 13.2 kd, e = 0.84): **Tier 1: 11, Tier 2: 17, Tier 3: 47.**
+  Tier 1 (all MACHO+OGLE, pred > 2, clean vetoes, no crowding flag): 11538, 10449, 09642, 05821, 15158, 16187, 03269, 16750, 16755, 17610, 22630;
+  P 2.0–5.3 kd, e 0.15–0.57, M2,min 0.14–0.96 Msun, K1 2.5–11.5 km/s. Note: OGLE-only stars cannot reach Tier 1 (no predictive test).
