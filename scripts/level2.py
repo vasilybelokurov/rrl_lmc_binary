@@ -105,8 +105,11 @@ def main():
         rows = pool.map(work, recs, chunksize=20)
     st = pd.DataFrame(rows)
     meta = d.drop(columns=[k for k in KEYS if k in d])
-    out = pd.concat([meta.reset_index(drop=True), st], axis=1)
-    out = out.loc[:, ~out.columns.duplicated()]
+    # injected-parameter columns that share a name with a fitted statistic (e.g. amp_s, rw_rms_s) are renamed inj_<name>
+    # (previously the duplicate was dropped and the FITTED value lost)
+    dup = [c for c in meta.columns if c in st.columns and c != "ogle_id"]
+    meta = meta.rename(columns={c: f"inj_{c}" for c in dup})
+    out = pd.concat([meta.reset_index(drop=True), st.drop(columns=["ogle_id"], errors="ignore")], axis=1)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     out.to_parquet(a.out)
     print(f"written {a.out}: {len(out)} rows; failures {out.err_msg.notna().sum() if 'err_msg' in out else 0}")

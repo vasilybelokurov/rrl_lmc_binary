@@ -1,0 +1,112 @@
+{
+ "MACHO": {
+  "n_real": 6612,
+  "n_real_cand": 69,
+  "n_real_tier1p": 17,
+  "null_D_q99": 16.862513960210222,
+  "null_D_q999": 20.48593835077871,
+  "null_D_max": 23.025640801384583,
+  "n_null": 2998,
+  "pass_cuts": {
+   "blazhko": 0.022014676450967312,
+   "empirical": 0.025850567044696463,
+   "jump": 0.00066711140760507,
+   "jump_big": 0.090393595730487,
+   "ltte": 0.159606404269513,
+   "null": 0.0,
+   "rwalk": 0.016010673782521682,
+   "rwalk_big": 0.025350233488992662
+  },
+  "pass_tier1p": {
+   "blazhko": 0.011674449633088725,
+   "empirical": 0.01000667111407605,
+   "jump": 0.00066711140760507,
+   "jump_big": 0.06104069379586391,
+   "ltte": 0.11474316210807205,
+   "null": 0.0,
+   "rwalk": 0.00533689126084056,
+   "rwalk_big": 0.011007338225483656
+  },
+  "n_sims": {
+   "blazhko": 2998,
+   "empirical": 5996,
+   "jump": 1499,
+   "jump_big": 2998,
+   "ltte": 5996,
+   "null": 2998,
+   "rwalk": 1499,
+   "rwalk_big": 2998
+  },
+  "expected_false_cuts": {
+   "rate": 0.025850567044696463,
+   "k": 155,
+   "n": 5996,
+   "expected": 170.923949299533,
+   "expected_95up": 195.29089997606243
+  },
+  "expected_false_tier1p": {
+   "rate": 0.01000667111407605,
+   "k": 60,
+   "n": 5996,
+   "expected": 66.16410940627085,
+   "expected_95up": 82.03206157077426
+  },
+  "upper_limit_M04_P1_10": 0.02674500550700743,
+  "upper_limit_M015_04_P1_10": 0.09897261348381105
+ },
+ "OGLE-only": {
+  "n_real": 10876,
+  "n_real_cand": 6,
+  "n_real_tier1p": 0,
+  "null_D_q99": 16.57277439156069,
+  "null_D_q999": 20.599202810255864,
+  "null_D_max": 21.214742361948964,
+  "n_null": 1600,
+  "pass_cuts": {
+   "blazhko": 0.008125,
+   "empirical": 0.00125,
+   "jump": 0.0,
+   "jump_big": 0.02375,
+   "ltte": 0.02125,
+   "null": 0.0,
+   "rwalk": 0.0,
+   "rwalk_big": 0.0
+  },
+  "pass_tier1p": {
+   "blazhko": 0.0,
+   "empirical": 0.0,
+   "jump": 0.0,
+   "jump_big": 0.0,
+   "ltte": 0.0,
+   "null": 0.0,
+   "rwalk": 0.0,
+   "rwalk_big": 0.0
+  },
+  "n_sims": {
+   "blazhko": 1600,
+   "empirical": 3200,
+   "jump": 800,
+   "jump_big": 1600,
+   "ltte": 3200,
+   "null": 1600,
+   "rwalk": 800,
+   "rwalk_big": 1600
+  },
+  "expected_false_cuts": {
+   "rate": 0.00125,
+   "k": 4,
+   "n": 3200,
+   "expected": 13.595,
+   "expected_95up": 31.11052279178445
+  },
+  "expected_false_tier1p": {
+   "rate": 0.0,
+   "k": 0,
+   "n": 3200,
+   "expected": 0.0,
+   "expected_95up": 10.181745064741625
+  },
+  "upper_limit_M04_P1_10": 0.015185649602894064,
+  "upper_limit_M015_04_P1_10": 0.11233362309746475
+ }
+}

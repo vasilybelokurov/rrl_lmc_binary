@@ -545,3 +545,23 @@ Provisional: Part-A (v3) real data; thresholds and contamination rates to be fin
   11538 (LMC504), 15158 (LMC517), 16187 (LMC515), 22630 (LMC552, high cadence 2024–26 per subagent).
   Expected per-season delay error at ~2400 epochs/season: 132 s × sqrt(54/2400) ≈ 20 s. → With OGLE data to 2024–2026 the baseline becomes 32–34 yr (1992–2026);
   every candidate's orbit would be tested over ≥ 1 further cycle with far higher precision than the existing data.
+
+---
+
+## 2026-10-01 — Part B complete; contamination, completeness, limits (`scripts/partB_analysis.py`, `scripts/partB_bkg_limit.py` → results/partB/)
+Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug found in the merge**: `level2.py` dropped duplicate columns keeping the INJECTED
+`amp_s`/`rw_rms_s` (fitted values lost) → analysis uses `amp_circ_s` (fitted); `level2.py` now renames injected duplicates to `inj_<name>`.
+- Null D (MACHO): q99/q99.9/max = 16.9/20.5/23.0 (N = 2998); OGLE-only 16.6/20.6/21.2 → D > 40 is far beyond pure noise.
+- Pass rates of the candidate cuts (MACHO): LTTE 0.160, jump_big 0.090, empirical 0.026, rwalk_big 0.025, Blazhko 0.022, rwalk 0.016, jump 0.0007, null 0.
+- Completeness of the cuts (MACHO): M2 0.4–1.5: 0.11 (0.4–1 kd), **0.56 (1–3 kd)**, 0.41 (3–10 kd); M2 0.15–0.4: 0.005/0.10/0.15; M2 < 0.15: ≤ 0.02.
+  OGLE-only: M2 0.4–1.5: 0.016/0.13/0.024 (short baseline + 1.5-cycle cut).
+- **Key result: the real candidates are consistent with the tail of the real population's timing noise.**
+  D distribution, real MACHO vs empirical sims: P(D > 10/20/40/80) = 0.752/0.327/0.123/0.017 vs 0.783/0.325/0.105/0.015 (null 0.243/0.002/0/0).
+  All cuts except the amplitude veto: real 150 vs empirical-predicted 171. The amplitude veto passes 46% of real such stars but 100% of empirical sims
+  (no amplitude modulation simulated: real timing noise often comes with Blazhko-like amplitude changes) → after correction: candidates 69 vs ~80 expected;
+  Tier-1 proxy (cuts + α < 1.5 + coherence < 1.5 + pred > 2) 24 vs ~33 expected. **No population-level excess of orbit-like signals.**
+  Caveat (circularity, Codex finding 3): the empirical noise is drawn from the real stars' own REML fits (candidates excluded), which also absorb any undetected orbits.
+- Upper limits, M2 0.4–1.5 Msun, P 1–10 kd: model-free (all candidates treated as binaries) **f < 2.7% (MACHO)**, < 1.5% (OGLE-only; low completeness);
+  background-subtracted (pre-α-veto sample, b = 171, Bayesian, systematic 15/25/50%): f < 1.4/2.4/4.1% (model-dependent). M2 0.15–0.4: f < 9.9% (MACHO).
+- Implication: the binary nature of individual candidates can only be decided by external data: OGLE-IV 2017–2026 (incl. the 2022–24 high-cadence fields
+  hosting 7 of 11 Tier 1), Gaia DR4, RVs. The population analysis gives a limit, not a detection.
