@@ -259,3 +259,29 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
 def unwrap_delays(tau: np.ndarray, P: float) -> np.ndarray:
     """Remove whole-cycle jumps between consecutive seasons (delays are defined modulo P)."""
     return tau[0] + np.unwrap(TWO_PI * (tau - tau[0]) / P) * P / TWO_PI
+
+
+def delays_fixed_template(t, m, err, labels, coef, P, T0, min_season=8, clip=5.0, n_clip=3):
+    """Per-season delays of a sparse light curve against a FIXED template shape (e.g. another band's well-measured template,
+    for Gaia epoch photometry): each season fits (tau, dm, alpha) via _season_shift with a common zero point removed.
+    Returns (t_eff, tau, tau_err) per season (errors scaled by sqrt(max(chi2_nu, 1)))."""
+    t, m, err, labels = map(np.asarray, (t, m, err, labels))
+    zp = np.median(m) - np.median(fourier_eval(coef, (t - T0) / P))
+    w = 1 / err ** 2
+    out = []
+    for s in np.unique(labels):
+        sel = labels == s
+        if sel.sum() < min_season:
+            continue
+        keep = sel.copy()
+        for _ in range(n_clip):
+            r = _season_shift(t[keep], m[keep], w[keep], np.full(keep.sum(), zp), coef, P, T0, 0.0, grid=True)
+            mod = zp + r["dm"] + r["alpha"] * fourier_eval(coef, (t - r["tau"] - T0) / P)
+            z = (m - mod) / err
+            new = sel & (np.abs(z) < clip * max(1.0, 1.4826 * np.median(np.abs(z[keep]))))
+            if np.array_equal(new, keep):
+                break
+            keep = new
+        chi2nu = r["chi2"] / max(keep.sum() - 3, 1)
+        out.append((r["t_eff"], r["tau"], np.sqrt(r["var_tau"] * max(chi2nu, 1.0))))
+    return tuple(np.array(x) for x in zip(*out)) if out else (np.empty(0),) * 3

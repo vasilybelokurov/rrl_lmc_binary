@@ -19,10 +19,14 @@ import sqlutilpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrlbin.ltte import ltte_delay  # noqa: E402
-from rrlbin.timing import fit_timing  # noqa: E402
+from rrlbin.timing import delays_fixed_template, fit_timing, year_labels  # noqa: E402
+from rrlbin.pipeline import load_star  # noqa: E402
 
 DAY = 86400.0
 SPLIT = 7470.0
+INFLATE = 1.64   # Gaia error inflation from scripts/gaia_timing_control.py (robust sd of z for 228 quiet non-candidates,
+                 # Gaia-own template, OGLE reference errors included; all excess attributed to Gaia = conservative)
+P_TAIL3 = 0.136  # fraction of control stars with |z| > 3 (heavy tail) -> expected chance rate of |z| > 3
 
 
 def main():
@@ -56,7 +60,7 @@ def main():
         if f.season.size < 2:
             continue
         d_obs = (f.tau[1] - f.tau[0] + r.P / 2) % r.P - r.P / 2
-        s_obs = np.hypot(*f.tau_err[:2])
+        s_obs = np.hypot(*f.tau_err[:2]) * INFLATE
         pred = ltte_delay(f.t_season[:2], r.P_kep, r.A_kep_s / DAY, r.e_kep, r.omega_kep, r.tp_kep)
         d_pred = pred[1] - pred[0]
         rows.append(dict(ogle_id=r.ogle_id, tier=r.tier, nG=int(t.size), err1_s=f.tau_err[0] * DAY, err2_s=f.tau_err[1] * DAY,
@@ -70,6 +74,8 @@ def main():
         inf = g_[g_.snr_pred > 2]
         print(f"tier {tr}: N={len(g_)}, informative (|pred|/sigma > 2): {len(inf)}; of these |z| < 2: {int((inf.z.abs() < 2).sum())}; "
               f"sign agrees: {int((np.sign(inf.dtau_obs_s) == np.sign(inf.dtau_pred_s)).sum())}")
+    inf = R[R.snr_pred > 2]
+    print(f"informative total {len(inf)}; |z| > 3: {int((inf.z.abs() > 3).sum())} (expected by chance from the control tail ~{P_TAIL3 * len(inf):.1f})")
     print(R[R.snr_pred > 2].sort_values("snr_pred", ascending=False)[["ogle_id", "tier", "nG", "dtau_obs_s", "dtau_pred_s", "sigma_s", "z"]]
           .round(1).to_string(index=False))
 

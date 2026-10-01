@@ -17,7 +17,7 @@
 \usepackage{caption}
 \usepackage[section]{placeins}
 \captionsetup{font=small,labelfont=bf}
-\graphicspath{{../../plots/writeup/}{../../plots/}{../../plots/candidates/}}
+\graphicspath{{../../plots/writeup/}{../../plots/}{../../plots/candidates/}{../../plots/partC/}{../../plots/partC/sheets/}}
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue,
   pdftitle={Binary RR Lyrae in the LMC: what the O-C measures and how the pipeline works}}
@@ -44,7 +44,7 @@ companions of $0.1$--$1\,\Msun$ on 3--30-yr orbits. We measure this delay once p
 (1992--1999). The resulting time series of delays is the \OC\ diagram. This note explains the measurement in
 words and in equations, illustrates it with mock data, and documents the pipeline, its tests and its known
 limitations. The candidate selection is explained panel by panel in \cref{sec:selection}; results are summarized briefly in
-\cref{sec:status}.
+\cref{sec:status}; the candidates are compared with the Galactic-bulge sample, and tested with Gaia photometry, in \cref{sec:hajdu}.
 \end{abstract}
 
 \tableofcontents
@@ -407,6 +407,113 @@ E: $D(P_{\rm orb})$. F: season amplitudes.}
 \end{figure}
 
 %==============================================================================
+\section{Part C: the candidates compared with the Galactic-bulge sample}\label{sec:hajdu}
+
+This section uses the v3 pipeline (Part A of the refit: MACHO $R$, harmonic coherence, whole-cycle band alignment, band-lag
+priors, smooth-wander noise model). Selection thresholds and contamination rates are \textbf{provisional} until the v3
+simulations (Part B) are complete. Scripts: \texttt{scripts/partC\_*.py}, \texttt{compare\_hajdu.py}, \texttt{gaia\_timing*.py}.
+
+\subsection{Our v3 candidates in brief}
+The cuts of \cref{tab:cuts} applied to the v3 statistics select 75 stars (69 with MACHO). Each was fitted with a full Keplerian
+LTTE orbit (Irwin delay + quadratic + MACHO offsets with priors + white jitter; multi-start least squares, residual bootstrap;
+recovery of injected $e=0,0.4,0.7$ orbits verified). Independent of the detection statistic we examined: the per-season
+amplitude constancy and harmonic coherence in every band, the out-of-sample prediction of the 1992--1996 MACHO seasons,
+crowding indicators from Gaia DR3 (MACHO candidates are indistinguishable from their parent population; KS $p=0.2$--$0.99$),
+and the Keplerian fit quality. Grouping:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Tier 1} (11): Keplerian fit not at the eccentricity bound and covering $\ge1.5$ cycles, $\chi^2_\nu<1.5$; amplitude and
+coherence $\chi^2_\nu<1.5$; no crowding flag; predictive score $>2$. All have MACHO $B$, $R$ and OGLE $I$.
+$P_{\rm orb}=5.4$--$14.5$\,yr, $e=0.15$--$0.57$, $M_{2,\min}=0.14$--$0.96\,\Msun$, $K_1=2.5$--$11.5\,\kms$, $V=19.2$--$19.7$.
+\item \textbf{Tier 2} (17): at most one soft flag; predictive score $>0$ or unavailable. \textbf{Tier 3} (47): the rest.
+\end{itemize}
+
+\subsection{The bulge sample of Hajdu et al.\ (2021)}
+\citet{Hajdu2021} examined $\sim$27{,}500 OGLE-III/IV O$-$C diagrams of bulge RRab (data to 2019; mean/median baselines 10.5/7.4\,yr),
+pre-selected $\sim$400 by eye, and retained 87 after MCMC LTTE fits including a period-change term, in three quality classes
+(Q1: 25, $P_{\rm orb}$ uncertainty $<1\%$; Q2: 32; Q3: 30, problematic fits). Their Table 1 was parsed from the arXiv source
+(\texttt{scripts/parse\_hajdu2021.py}).
+
+\textbf{Follow-up status.} We found no published confirmation or refutation of any of the 87. A 2026 study co-authored by Hajdu
+and Prudil states that ``only a single RRL is confirmed as belonging to a binary system'' \citep{Salinas2026}, namely
+TU~UMa, a field star \citep{Liska2016}. Radial-velocity tests of Galactic field timing candidates have been largely negative
+(15 of 19 without binarity, \citealt{Barnes2021}; KIC~2831097 ruled out, \citealt{Poretti2025}). The status of the bulge
+candidates is therefore \emph{untested}, not refuted. (Literature search: \texttt{docs/reviews/hajdu\_followup.md}; an ADS
+full-text query could not be run.)
+
+\subsection{Side-by-side comparison}
+\begin{table}[h]
+\centering
+\caption{Medians per class. $A=a_1\sin i/c$; $\sigma_A/A$, $\sigma_P/P$, $\sigma_e$: Hajdu posterior standard deviations, ours
+bootstrap half 16--84\% widths; cycles = baseline/$P_{\rm orb}$ (Hajdu baseline \emph{assumed} 6700\,d, 2001.4--2019.7).}
+\label{tab:hajdu}
+\small
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+class & N & $P_{\rm orb}$ [d] & $A$ [s] & $e$ & $M_{2,\min}$ & $K_1$ & $\sigma_A/A$ & $\sigma_P/P$ & $\sigma_e$ & cycles\\
+\midrule
+Hajdu Q1 & 25 & 3437 & 779 & 0.27 & 0.44 & 6.5 & 0.017 & 0.005 & 0.024 & 1.9\\
+Hajdu Q2 & 32 & 3477 & 355 & 0.31 & 0.14 & 2.6 & 0.037 & 0.015 & 0.054 & 1.9\\
+Hajdu Q3 & 30 & 4910 & 534 & 0.35 & 0.20 & 3.4 & 0.092 & 0.053 & 0.065 & 1.4\\
+LMC Tier 1 & 11 & 2914 & 804 & 0.34 & 0.49 & 6.2 & 0.067 & 0.011 & 0.102 & 2.9\\
+LMC Tier 2 & 17 & 3131 & 736 & 0.32 & 0.44 & 6.2 & 0.070 & 0.016 & 0.127 & 2.4\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[p]
+\centering\includegraphics[width=\textwidth]{hajdu_comparison.png}
+\caption{Our candidates (Tier 1: stars; Tier 2: squares; Tier 3: crosses) against the Hajdu Q1/Q2/Q3 bulge candidates:
+(a) LTTE amplitude vs orbital period with edge-on curves for $M_2=0.067$, 0.2 and $0.6\,\Msun$ (the three groups suggested by
+Hajdu et al.); (b, c) relative uncertainties of $A$ and $P_{\rm orb}$; (d) uncertainty of $e$; (e) orbital cycles covered;
+(f) minimum companion mass.}
+\label{fig:hajdu}
+\end{figure}
+
+\paragraph{Where the bulge sample is stronger: precision.} At $I\approx15$--16 the bulge stars are 3--4\,mag brighter; their
+orbital parameters are 2--4 times more precise ($\sigma_A/A$ 1.7\% vs 6.7\%, $\sigma_P/P$ 0.5\% vs 1.1\%, $\sigma_e$ 0.02 vs 0.10
+for Q1 vs Tier 1). Their seasons were also split into segments (more O$-$C points). Their posterior widths assume white timing
+noise beyond a constant $\dot P$, which understates the uncertainty if the period wanders (\cref{sec:nuis}).
+
+\paragraph{Where our sample is stronger: robustness against the dominant false-positive mechanism.}
+The main way an RR~Lyrae imitates an orbit is slow intrinsic phase wander (irregular period changes are common in every
+population studied; e.g.\ \citealt{Alcock2000} for LMC RRc). Four properties of our Tier~1 address it directly:
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Independent instruments.} The orbit must be the same in MACHO ($B$, $R$; Mount Stromlo, 1992--1999) and OGLE
+($I$; Las Campanas, 1997--2016). The bulge O$-$C diagrams come from OGLE alone.
+\item \textbf{More cycles}: median 2.9 vs 1.9. A single smooth excursion, the commonest form of wander, cannot produce two
+full, matching cycles.
+\item \textbf{An out-of-sample prediction passed}: every Tier~1 orbit, fitted to the 1997--2016 data, predicts the 1992--1996
+MACHO delays better than the no-orbit model (score $>2$). The bulge analysis has no equivalent (except one extrapolation check).
+\item \textbf{Calibrated contamination}: thresholds and nuisance rates come from simulations on the real cadences with a noise
+model matched to the real stars (smooth wander, \cref{sec:nuis}); the bulge pre-selection was by eye, without a false-alarm rate.
+\end{enumerate}
+\paragraph{Where they are alike.} Our sensitivity limit ($A\gtrsim350$\,s) restricts us to the high-amplitude regime of the
+bulge Q1 class: medians $A\approx800$\,s, $M_{2,\min}\approx0.45$--$0.5\,\Msun$, $K_1\approx6\,\kms$ in both
+(\cref{fig:hajdu}a, f). We cannot test the low-mass Q2/Q3 population ($M_{2,\min}\sim0.1$--$0.2\,\Msun$).
+
+\paragraph{Expectation.} The strongest Tier~1 candidates have passed exactly the tests that phase wander tends to fail, so we
+expect them to fare better than a typical bulge candidate. How many could still be wander will be quantified by the
+empirical-noise class of Part B (pass rate of the full Tier~1 criteria). Confirmation is, however, harder: at $V\approx19.4$,
+measuring $K_1\sim6\,\kms$ requires $\sim$1--2\,\kms\ per epoch after removing a $\sim$60\,\kms\ pulsation curve
+(published LMC RR~Lyrae RVs reach 10--35\,\kms\ per epoch).
+
+\subsection{A photometric test with Gaia}
+Gaia DR3 epoch $G$ photometry (2014.6--2017.4) exists for 62 of the 75 candidates (median 34 usable transits, per-transit
+S/N $\approx59$). We fitted a $G$-band template and two delays, one per half of the DR3 window; the unknown $G$--$I$ band lag
+cancels in their difference $\Delta\tau$, which is compared with each Keplerian prediction.
+\begin{itemize}[leftmargin=*]
+\item \textbf{Calibration on 228 quiet non-candidate stars} (Gaia $\Delta\tau$ vs OGLE's own $\Delta\tau$ at the same epochs, OGLE
+errors included): robust scatter of $z$ = 1.64 (2.2\% beyond $5\sigma$) $\Rightarrow$ Gaia errors inflated by 1.64.
+\item \textbf{DR3 result}: only 4 of 53 testable candidates are informative ($|\Delta\tau_{\rm pred}|>2\sigma$). Two agree
+(16755, Tier~1, $z=0.8$; 13469, $z=0.3$); two disagree (13392, Tier~2, $z=-6.7$; 01106, Tier~3, $z=+3.5$), versus $\sim$0.5 expected
+by chance from the control tail. DR3 is too sparse for most orbits.
+\item \textbf{DR4 forecast} (expected December 2026; 2014.6--2020.1, \emph{assumed} $\sim$2$\times$ the DR3 epochs; bins 2014.6--2017.4
+and 2017.4--2020.1, the latter entirely after the public OGLE-IV data): testable at $>2\sigma$ for 6 of 9 Tier~1 (5 at $>3\sigma$),
+8 of 13 Tier~2, 13 of 31 Tier~3. DR4 can therefore confirm or reject most of the strongest candidates photometrically, at no
+observing cost. OGLE-IV photometry after 2016 (not public) would be a stronger test still.
+\end{itemize}
+
+%==============================================================================
 \begin{thebibliography}{99}\small
 \bibitem[Irwin(1952)]{Irwin1952} Irwin J.\,B., 1952, ApJ, 116, 211, ``The determination of a light-time orbit''.
 \url{https://ui.adsabs.harvard.edu/abs/1952ApJ...116..211I}
@@ -422,6 +529,11 @@ E: $D(P_{\rm orb})$. F: season amplitudes.}
 \url{https://doi.org/10.1051/0004-6361/201525870}
 \bibitem[Bobrick et al.(2024)]{Bobrick2024} Bobrick A., et al., 2024, MNRAS, 527, 12196 (RR Lyrae from binary evolution).
 \url{https://doi.org/10.1093/mnras/stad3996}
+\bibitem[Salinas et al.(2026)]{Salinas2026} Salinas R., Kalari V., Hajdu G., Prudil Z., et al., 2026, ``Finding the elusive RR Lyrae companions
+via speckle imaging''. \url{https://arxiv.org/abs/2603.28684}
+\bibitem[Barnes et al.(2021)]{Barnes2021} Barnes T.\,G., et al., 2021, AJ, 162, 117. \url{https://arxiv.org/abs/2106.05208}
+\bibitem[Poretti et al.(2025)]{Poretti2025} Poretti E., et al., 2025, A\&A (KIC 2831097). \url{https://doi.org/10.1051/0004-6361/202556279}
+\bibitem[Alcock et al.(2000)]{Alcock2000} Alcock C., et al., 2000, ApJ, 542, 257 (MACHO LMC RRc). \url{https://doi.org/10.1086/309530} (Crossref-verified)
 \bibitem[Cusano et al.(2021)]{Cusano2021} Cusano F., et al., 2021, MNRAS, 504, 1 (VMC LMC RR Lyrae; blending).
 \url{https://doi.org/10.1093/mnras/stab901}
 \end{thebibliography}

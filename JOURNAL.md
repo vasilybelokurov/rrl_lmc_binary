@@ -514,3 +514,14 @@ Provisional: Part-A (v3) real data; thresholds and contamination rates to be fin
   | LMC Tier 1 | 11 | 2914 | 804 | 0.34 | 0.49 | 6.2 | 0.067 | 0.011 | 0.102 | 2.9 |
   | LMC Tier 2 | 17 | 3131 | 736 | 0.32 | 0.44 | 6.2 | 0.070 | 0.016 | 0.127 | 2.4 |
   (*Hajdu baseline assumed 6700 d.) Our candidates occupy the high-amplitude end (A ≳ 350 s; sensitivity), similar to Hajdu Q1 in A, M2,min and K1.
+
+### Gaia photometry as a test (user question) — `scripts/gaia_epochs_check.py`, `gaia_timing.py`, `gaia_timing_control.py`, `gaia_dr4_forecast.py`
+- DR3 epoch G for 62/75 candidates: median 34 usable transits (p10–p90 27–41), HJD′ 6864–7875 (2014.6–2017.4), per-transit flux S/N ≈ 59, median G 19.33.
+- Test: G template (K = 4) + one delay per half of the DR3 window (split at 7470); the G–I lag cancels in Δτ; compared with each Keplerian prediction.
+- Control (228 quiet non-candidates, G 18.8–19.8): Gaia Δτ vs OGLE's own Δτ at the same epochs. With Gaia errors only: robust sd(z) 2.7 (→ the OGLE reference error
+  was missing); with OGLE errors included: **robust sd 1.64**, |z| > 5 2.2% (Gaia-own template); a fixed OGLE-I template is worse (1.82). → Gaia errors inflated by 1.64.
+- DR3 result: 4/53 informative (|pred| > 2σ): 16755 (T1) z = 0.8 and 13469 z = 0.3 agree; **13392 (T2) z = −6.7 and 01106 (T3) z = +3.5 disagree** (~0.5 expected by chance).
+- DR4 forecast (assumed ~2× DR3 epochs; bins 2014.6–2017.4 / 2017.4–2020.1, the latter entirely after public OGLE-IV): testable > 2σ for 6/9 Tier 1 (5 > 3σ),
+  8/13 Tier 2, 13/31 Tier 3.
+- Write-up: new §7 "Part C: the candidates compared with the Galactic-bulge sample" (tiers, Hajdu follow-up status, comparison table + figure, strengths and weaknesses,
+  expectation, Gaia test + DR4 forecast); 16 pp. Note: one DOI (Alcock+2000) was first written from memory; now verified via Crossref.
