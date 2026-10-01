@@ -28,8 +28,9 @@ def robust_unwrap(t, tau, band, P, n_iter=4, half_window=2):
 
     First a sequential unwrap in time order; then, iteratively, each season is moved by the integer number of cycles
     that brings it closest to a local linear prediction from its neighbours (up to `half_window` seasons on each side,
-    itself excluded). This repairs single-season cycle slips that the sequential unwrap propagates to all later
-    seasons. Returns the unwrapped delays (same order as the input)."""
+    itself excluded), provided the move also reduces the jumps to the adjacent seasons (conservative: on real noisy
+    stars with near-half-cycle jumps the prediction alone can move points the wrong way). Repairs isolated slips.
+    Returns the unwrapped delays (same order as the input)."""
     t, tau, band = map(np.asarray, (t, tau, band))
     out = tau.astype(float).copy()
     for b in np.unique(band):
@@ -48,8 +49,12 @@ def robust_unwrap(t, tau, band, P, n_iter=4, half_window=2):
                     pred = np.polyval(c, t[idx[j]])
                     k = np.round((pred - y[j]) / P)
                     if k != 0:
-                        y[j] += k * P
-                        changed = True
+                        # conservative: accept only if it also reduces the jumps to the adjacent seasons
+                        adj = [a for a in (j - 1, j + 1) if 0 <= a < idx.size]
+                        rough = lambda v: sum(abs(v - y[a]) for a in adj)
+                        if rough(y[j] + k * P) < rough(y[j]) - 1e-12:
+                            y[j] += k * P
+                            changed = True
                 if not changed:
                     break
         out[idx] = y
@@ -60,7 +65,7 @@ def robust_unwrap(t, tau, band, P, n_iter=4, half_window=2):
 def design(t, band, t_ref, P_orb=None, n_harm=1):
     x = (np.asarray(t) - t_ref) / 1000.0
     cols = [x ** 2, x, np.ones_like(x)]
-    names = ["c2", "c1", "c0"]
+    names = ["q2", "q1", "q0"]          # quadratic ephemeris terms (distinct from orbit names!)
     for b in BANDS_EXTRA:
         if np.any(band == b):
             cols.append((band == b).astype(float))
@@ -69,7 +74,7 @@ def design(t, band, t_ref, P_orb=None, n_harm=1):
         for h in range(1, n_harm + 1):
             w = 2 * np.pi * h * np.asarray(t) / P_orb
             cols += [np.sin(w), np.cos(w)]
-            names += [f"s{h}", f"c{h}"]
+            names += [f"sin{h}", f"cos{h}"]
     return np.column_stack(cols), names
 
 
@@ -144,8 +149,8 @@ def orbit_amplitude(beta, names, P_orb, n_harm):
     tt = np.linspace(0, P_orb, 400)
     y = np.zeros_like(tt)
     for h in range(1, n_harm + 1):
-        y += beta[names.index(f"s{h}")] * np.sin(2 * np.pi * h * tt / P_orb) + beta[names.index(f"c{h}")] * np.cos(2 * np.pi * h * tt / P_orb)
-    return 0.5 * np.ptp(y), float(np.hypot(beta[names.index("s1")], beta[names.index("c1")]))
+        y += beta[names.index(f"sin{h}")] * np.sin(2 * np.pi * h * tt / P_orb) + beta[names.index(f"cos{h}")] * np.cos(2 * np.pi * h * tt / P_orb)
+    return 0.5 * np.ptp(y), float(np.hypot(beta[names.index("sin1")], beta[names.index("cos1")]))
 
 
 def alias_dD(Dp, periods, P_best):
@@ -228,6 +233,7 @@ def oc_stats(series: dict, priors=None, n_harm_detect=1, p_min=400.0, with_red=T
     P = float(series["P"])
     o = np.argsort(t)
     t, tau, err, band = t[o], tau[o], err[o], band[o]
+    tau_raw = tau.copy()
     tau = robust_unwrap(t, tau, band, P)
     periods = period_grid(np.ptp(t), p_min=p_min)
     r1 = orbit_search(t, tau, err, band, periods, 1, priors)
@@ -259,10 +265,23 @@ def oc_stats(series: dict, priors=None, n_harm_detect=1, p_min=400.0, with_red=T
     ok &= (~test).sum() >= 8
     if ok:
         # the orbital period is searched on the TRAINING seasons only (no information from the held-out seasons)
+        # No information from the held-out seasons may enter the training set (Codex review 2026-10-01):
+        # unwrap the training seasons on their own; then place the held-out block of each band by sequential unwrapping
+        # within the block and one whole-cycle shift that joins it continuously to that band's first training season.
         tr = ~test
-        rtr = orbit_search(t[tr], tau[tr], err[tr], band[tr], period_grid(np.ptp(t[tr]), p_min=p_min), n_harm_detect, priors)
+        tau_p = tau_raw.copy()
+        tau_p[tr] = robust_unwrap(t[tr], tau_raw[tr], band[tr], P)
+        for b in BANDS_EXTRA:
+            mt, mr = test & (band == b), tr & (band == b)
+            if mt.any():
+                y = tau_raw[mt]
+                y = y[0] + np.unwrap(2 * np.pi * (y - y[0]) / P) * P / (2 * np.pi)
+                if mr.any():
+                    y = y + P * np.round((tau_p[mr][0] - y[-1]) / P)
+                tau_p[mt] = y
+        rtr = orbit_search(t[tr], tau_p[tr], err[tr], band[tr], period_grid(np.ptp(t[tr]), p_min=p_min), n_harm_detect, priors)
         out["P_train"], out["D_train"] = rtr["P_best"], rtr["D"]
-        out["pred_score"] = predictive_score(t, tau, err, band, test, rtr["P_best"], n_harm_detect, priors)
+        out["pred_score"] = predictive_score(t, tau_p, err, band, test, rtr["P_best"], n_harm_detect, priors)
     out["tau_unwrapped"] = tau
     return out
 

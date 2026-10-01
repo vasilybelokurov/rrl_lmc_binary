@@ -118,3 +118,49 @@ def test_common_mode_iterates_to_injected_pattern():
     assert np.std(d) * DAY < 15
     res_before = np.std([apply_common_mode(s, {}, year_labels)["tau"].std() for s in series])
     assert res_before >= 0
+
+
+def test_robust_unwrap_clustered_slip_does_no_harm():
+    """Two adjacent slipped seasons: the conservative rule may leave them, but must never increase the jumps."""
+    rng = np.random.default_rng(8)
+    t = seasons(rng)
+    band = np.zeros(t.size, int)
+    smooth = 0.3 * P * np.sin(2 * np.pi * t / 4000)
+    y = np.mod(smooth + P / 2, P) - P / 2
+    y[8:10] += P
+    u = robust_unwrap(t, y, band, P)
+    jump = lambda v: np.max(np.abs(np.diff(v)))
+    seq = y[0] + np.unwrap(2 * np.pi * (y - y[0]) / P) * P / (2 * np.pi)
+    assert jump(u) <= jump(seq) + 1e-12
+
+
+def test_predictive_score_independent_of_held_out_wrapping():
+    """Shifting a held-out season by a whole cycle must not change the training fit (no leakage via unwrapping)."""
+    rng = np.random.default_rng(9)
+    t = seasons(rng)
+    band = np.where(t < 1600, 1, 0)
+    band[(t > 400) & (t < 1600)] = 1
+    tt = np.r_[t, t[(t > 450) & (t < 1700)] + 30]
+    bb = np.r_[band, np.zeros(((t > 450) & (t < 1700)).sum(), int)]
+    o = np.argsort(tt); tt, bb = tt[o], bb[o]
+    err = np.full(tt.size, 150 / DAY)
+    y = ltte_delay(tt, 2500, 800 / DAY) + rng.normal(0, 1, tt.size) * err
+    a = oc_stats(dict(t=tt, tau=y, err=err, band=bb, P=P), with_red=False)
+    y2 = y.copy()
+    k = np.flatnonzero((bb == 1) & (tt < 450))[1]
+    y2[k] += P
+    b = oc_stats(dict(t=tt, tau=y2, err=err, band=bb, P=P), with_red=False)
+    assert a["P_train"] == b["P_train"] and abs(a["D_train"] - b["D_train"]) < 1e-9
+
+
+def test_orbit_amplitude_any_phase():
+    """Regression test for a name collision (quadratic 'c1' vs orbit 'c1'): the fitted circular amplitude must not
+    depend on the orbital phase."""
+    rng = np.random.default_rng(10)
+    t = seasons(rng)
+    err = np.full(t.size, 30 / DAY)
+    from rrlbin.oc import orbit_amplitude
+    for phase in np.linspace(0, 2 * np.pi, 7):
+        y = 1500 / DAY * np.sin(2 * np.pi * t / 3000 + phase) + rng.normal(0, 1, t.size) * err
+        x = orbit_search(t, y, err, np.zeros(t.size, int), np.array([3000.0]), 1)
+        assert abs(orbit_amplitude(x["beta"], x["names"], 3000.0, 1)[0] * DAY - 1500) < 60

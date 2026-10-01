@@ -78,6 +78,7 @@ def main():
     ap.add_argument("--apply-cm", default=None, help="apply a saved common mode")
     ap.add_argument("--band-lag", default=None)
     ap.add_argument("--no-red", action="store_true")
+    ap.add_argument("--cm-exclude", default=None, help="CSV with ogle_id: stars excluded from the common-mode estimate")
     ap.add_argument("--workers", type=int, default=6)
     a = ap.parse_args()
     d = load(a.series)
@@ -89,7 +90,9 @@ def main():
     cm = {}
     if a.common_mode:
         series = [to_series(r) for r in d.to_dict("records")]
-        cm, hist = common_mode(series, year_labels, n_iter=6, select=[len(s["t"]) >= 12 for s in series])
+        ex = set(pd.read_csv(a.cm_exclude).ogle_id) if a.cm_exclude else set()
+        sel = [(len(s["t"]) >= 12) and (oid not in ex) for s, oid in zip(series, d.ogle_id)]
+        cm, hist = common_mode(series, year_labels, n_iter=6, select=sel)
         Path(a.common_mode).parent.mkdir(parents=True, exist_ok=True)
         Path(a.common_mode).write_text(json.dumps({f"{b},{y}": v * DAY for (b, y), v in sorted(cm.items())}, indent=1))
         print("common mode [s]:", {k: round(v * DAY, 1) for k, v in sorted(cm.items())}, "; max update per iteration [s]:",

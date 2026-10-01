@@ -39,7 +39,9 @@ def one(row):
     oid, mid, P, T0, ra, dec = row
     try:
         s, fits, _ = star_series(oid, P, T0, mid, ra, dec)
-        out = dict(ogle_id=oid, ok=True, P=P, T0=T0, chi2nu_I=s["chi2nu_I"], bands="".join(sorted(fits)))
+        # usable only with an OGLE I fit (the same requirement as in the simulations)
+        out = dict(ogle_id=oid, ok="I" in fits, P=P, T0=T0, chi2nu_I=s["chi2nu_I"], bands="".join(sorted(fits)),
+                   failures="; ".join(f"{k}: {v}" for k, v in s["failures"].items()))
         out.update({k: s[k] for k in KEYS})
         return out
     except Exception as ex:
@@ -60,9 +62,13 @@ def main():
         s = s.sample(a.limit, random_state=0).sort_values("ogle_id")
     jobs = list(zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec))
     print(f"stars: {len(jobs)}", flush=True)
-    chunked.run_chunked(one, jobs, a.out, workers=a.workers, chunk=250)
+    chunked.run_chunked(one, jobs, a.out, workers=a.workers, chunk=250,
+                        manifest=dict(script="level1_real", ids=[j[0] for j in jobs], require_o2=a.require_o2))
     d = chunked.merge_parts(a.out)
     print(f"ok {d.ok.sum()} / {len(d)}; bands: {d[d.ok].bands.value_counts().to_dict()}")
+    if "failures" in d:
+        f = d.failures.fillna("")
+        print("band-fit failures:", f[f != ""].str.split(";").explode().str.split(":").str[0].str.strip().value_counts().to_dict())
 
 
 if __name__ == "__main__":

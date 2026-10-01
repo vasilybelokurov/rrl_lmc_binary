@@ -414,3 +414,26 @@ Real limit = season-mean smearing, |sinc(π·240/P)| = 0.23 (300 d), 0.50 (400 d
 
 ### Proposed full refit (awaiting approval)
 Order: real L1 (17,492 stars, ~75 min) → common mode → band lag → real L2 (~30 min) → sims L1 with the real noise table + lag (1,500 stars × 18, ~2.5 h) → sims L2 (~45 min).
+
+### Pre-refit review (user: "discuss with codex … don't trust codex blindly") — docs/reviews/2026-10-01_codex_pipeline_v3.md
+| Codex finding | Codex severity | my verdict | action |
+|---|---|---|---|
+| predictive test: full-series unwrapping before the train/test split leaks held-out info | high | confirmed in code (tiny in practice) | fixed: train-only unwrap; held-out block joined by one cycle shift; test that a held-out cycle shift leaves P_train, D_train unchanged |
+| band-lag priors calibrated on the same stars | med/high | correct in principle; each star ≈ 1/1500 of the relation; overlap stars dominated by their own data | none (noted) |
+| empirical noise drawn from fits that include binaries | medium | by design; conservative | `--exclude candidates.csv` for the noise table |
+| common mode may absorb coherent signals | medium | needs phase-coherent orbits across many stars; implausible | `--cm-exclude candidates.csv` anyway |
+| unwrapping of clustered slips | medium | mostly addressed by the conservative rule | test: clustered slip never increases jumps |
+| stale chunk resumption | medium | confirmed | run manifest (ids + options, digest); mismatch refused |
+| silent band-fit failures; real ok without I | medium | confirmed | ok requires I (as in sims); failure reasons recorded and summarized |
+Codex verified (I agree): prior pseudo-rows consistent between H0 and H1; no Level-2 row misalignment; the 2-harmonic amplitude definition is self-consistent.
+
+### My own pre-refit checks
+- Robust unwrap on 300 real "slip" stars: the original version changed 17% and made the worst jumps worse (p90 0.49 → 0.58 P): these are near-half-cycle ambiguities, not slips.
+  → conservative rule (accept only if the adjacent-season jumps decrease): 0% changed, none worse; the synthetic slip test still passes.
+- Orbit recovery v3 vs v2 (150 stars × 4 LTTE + 2 null): D > 40 for M2 0.4–1.5, P 1–10 kd: 0.72 (v2 0.65); M2 0.15–0.4: 0.30 (0.24); P 400–1000 d at D > 25: 0.38 (0.19).
+  Null D p99/max 18.2/21.2 (v2 15.6/23.0).
+- **Bug found by this comparison:** fitted amplitudes 19% low (0.81) → name collision in `oc.design`: the quadratic 'c1' vs the orbit 'c1' made `orbit_amplitude` read the
+  linear O−C coefficient as the orbit cosine. Fixed (names q0–q2, sin_h/cos_h) + phase-independence regression test. Now: 0.99 (detections), 0.98 (no D selection).
+  Eccentric (e > 0.4): half-ptp/injected 0.87, as expected (half-ptp = a sin i/c · sqrt(1 − e² cos² ω)). D, P and the earlier detection results were unaffected.
+- Open (minor): the real-data common mode settles into a 7-s limit cycle (likely clipping-set flips).
+Tests: 32 pass.

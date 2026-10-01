@@ -35,16 +35,20 @@ def load_star(ogle_id: str, macho_id=None, ra=None, dec=None, raw=RAW) -> dict:
     return out
 
 
-def fit_star(lcs: dict, P: float, T0: float, K: int = 8) -> dict:
-    """Timing fit per band (year seasons). Bands with too few epochs or failing fits are skipped."""
+def fit_star(lcs: dict, P: float, T0: float, K: int = 8, failures: dict | None = None) -> dict:
+    """Timing fit per band (year seasons). Bands with too few epochs or failing fits are skipped; the reason is recorded
+    in `failures` (band -> message) if a dict is given (same rule for real stars and simulations)."""
     fits = {}
     for b, (t, m, e, seg) in lcs.items():
         if t.size < MIN_EPOCHS:
+            if failures is not None:
+                failures[b] = f"only {t.size} epochs"
             continue
         try:
             fits[b] = fit_timing(t, m, e, seg, P, T0, K=K, labels=year_labels(t))
-        except Exception:
-            continue
+        except Exception as ex:
+            if failures is not None:
+                failures[b] = str(ex)[:100]
     return fits
 
 
@@ -74,5 +78,8 @@ def series_from_fits(fits: dict, P: float) -> dict:
 def star_series(ogle_id, P, T0, macho_id=None, ra=None, dec=None, raw=RAW):
     """Real star: (series, fits, light curves)."""
     lcs = load_star(ogle_id, macho_id, ra, dec, raw)
-    fits = fit_star(lcs, P, T0)
-    return series_from_fits(fits, P), fits, lcs
+    failures = {}
+    fits = fit_star(lcs, P, T0, failures=failures)
+    s = series_from_fits(fits, P)
+    s["failures"] = failures
+    return s, fits, lcs

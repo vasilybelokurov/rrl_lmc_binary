@@ -18,9 +18,26 @@ from pathlib import Path  # noqa: E402
 import pandas as pd  # noqa: E402
 
 
-def run_chunked(func, jobs, out_dir, workers=6, chunk=500, flatten=False):
+def run_chunked(func, jobs, out_dir, workers=6, chunk=500, flatten=False, manifest=None):
+    """manifest: dict describing the run (job ids, options). Stored as <out_dir>/manifest.json on the first run; a resumed
+    run with a different manifest or chunk size is refused (prevents silently merging stale parts)."""
+    import hashlib
+    import json
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    if manifest is not None:
+        m = dict(manifest, chunk=chunk, n_jobs=len(jobs))
+        digest = hashlib.sha256(json.dumps(m, sort_keys=True, default=str).encode()).hexdigest()
+        mf = out / "manifest.json"
+        if mf.exists():
+            old = json.loads(mf.read_text())
+            if old.get("digest") != digest:
+                raise RuntimeError(f"{out}: existing parts were produced by a different run (manifest mismatch); "
+                                   "use a fresh output directory")
+        elif any(out.glob("part_*.parquet")):
+            raise RuntimeError(f"{out}: parts exist without a manifest; use a fresh output directory")
+        else:
+            mf.write_text(json.dumps(dict(digest=digest, **{k: v for k, v in m.items() if k != "ids"}), default=str, indent=1))
     n_chunks = (len(jobs) + chunk - 1) // chunk
     t0 = time.time()
     with Pool(workers) as pool:
