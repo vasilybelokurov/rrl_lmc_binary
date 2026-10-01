@@ -449,3 +449,24 @@ Tests: 32 pass.
   Check (60 stars × 4): ρ(B, R) = 0.63, ρ(M, O) = 0.37 (real 0.58, 0.37); χ²_ν p50 2.6/2.5/2.3 vs real 1.8/2.4/2.9; **p90 OGLE 65 vs real 18 (tail too heavy)**,
   probably because the noise table still comes from the old pipeline (MACHO B only; large rw absorbing MACHO–OGLE discontinuities).
   → **Acceptance test in the refit:** regenerate the noise table from the new real Level 2, re-run this comparison, and only then use the empirical class.
+
+---
+
+## 2026-10-01 — Refit v3 part A (real data) and the noise-model checkpoint
+- User: automated regular commits/pushes → `scripts/autocommit.sh` + `.claude/settings.json` Stop hook (async); orchestrators commit after each stage; chunk parts gitignored.
+- User: OGLE-only detections → part B now has two calibration campaigns: MACHO stars (1500) and OGLE-only stars (800), with separate noise tables (`--sample`).
+- Part A (scripts/run_refit_v3_A.sh): Level 1 for all 17,492 RRab (21 min): 17,490 ok (2 OGLE I fit failures); bands I only 10,878, I+MB+MR 6,599, I+MB 13.
+  Common mode (full sample, candidates excluded): converged (update 95 → 2.7 s). MACHO B and R per-year patterns agree within a few s
+  (1992–99 B: −37, +26, +34, +39, +56, +53, −60, −110 s; R: −38, +24, +32, +41, +55, +49, −63, −99) → a timing systematic of the MACHO data. OGLE −66 … +46 s.
+  Band lag (full): B −6648 P + 1966 s, intrinsic sd 293 s, −0.036 cycles (N = 1582); R −2656 P + 718 s, sd 218 s, −0.016 cycles (N = 1552).
+- **Checkpoint 1 failed** (empirical sims χ²_ν p50 8 vs real 1.8). Cause 1 (**bug**): ~13% of MACHO stars had a band series a whole cycle off the band-lag prior →
+  jitter at the grid ceiling and inflated D (median 40 vs 14). Fix: `oc.align_bands` (whole-cycle alignment to the prior; training-only in the predictive test) + regression test.
+- **Checkpoint 2 failed** (MACHO sims still ×4). Cause 2: the real excess noise is RED — `scripts/noise_timescale_test.py`: χ²_ν per band p50/p75/p90 = 2.0/4.1/13.7
+  vs joint 2.6/10.8/67 (slow wander absorbed within each survey's quadratic), whereas Brownian sims gave per band 2.9/29.5/132.
+  Fix: `oc.gp_null` (squared-exponential GP wander, l ∈ {700, 1500, 3000, 6000} d, plus white jitter, **REML**; ML biased A low: injected 900 s → 95 s);
+  `simulate.delay_gp`; the empirical class draws (s/σ, A/σ, l) from the real REML fits. Tests (34 pass): recovery A 950 vs 900 s at l = 1500 d; at l = 3000 d poorly constrained (566 vs 900, wide).
+  Real fits: A/σ p50/p75/p90 = 2.05/11.0/21.5 (MACHO), 1.46/7.8/21.5 (OGLE-only); l = 700 d most common.
+- **Checkpoint 3 (accepted, with documented residual mismatch)**: χ²_ν about H0 per band, real vs empirical sims (60 stars each; p90 rests on ~6 stars):
+  MACHO stars I 1.8/18 vs 3.4/33, B 2.4/37 vs 3.6/19, R 2.9/17 vs 2.5/11; timescale test per band 2.0/4.1/13.7 vs 2.2/9.1/36, joint 2.6/10.8/67 vs 3.1/18/107
+  (was ×7–10 with Brownian; now within ×1.5–2.5, sims slightly noisier → conservative for false positives); OGLE-only I 2.0/89 vs 2.3/18 (median OK, real tail heavier;
+  the jump_big / rwalk_big classes cover the tail). → part B launched.
