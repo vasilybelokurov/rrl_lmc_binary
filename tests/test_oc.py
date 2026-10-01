@@ -164,3 +164,19 @@ def test_orbit_amplitude_any_phase():
         y = 1500 / DAY * np.sin(2 * np.pi * t / 3000 + phase) + rng.normal(0, 1, t.size) * err
         x = orbit_search(t, y, err, np.zeros(t.size, int), np.array([3000.0]), 1)
         assert abs(orbit_amplitude(x["beta"], x["names"], 3000.0, 1)[0] * DAY - 1500) < 60
+
+
+def test_band_whole_cycle_shift_with_prior_is_harmless():
+    """A MACHO band shifted by a whole pulsation cycle relative to its prior must give the same statistics
+    (regression test: before align_bands, 13% of real MACHO stars had inflated jitter and D)."""
+    rng = np.random.default_rng(13)
+    t = seasons(rng)
+    band = np.where(t < 1600, 1, 0)
+    err = np.full(t.size, 150 / DAY)
+    off = -1600 / DAY
+    y = ltte_delay(t, 3000, 600 / DAY) + np.where(band == 1, off, 0) + rng.normal(0, 1, t.size) * err
+    pri = {1: (off, 300 / DAY)}
+    a = oc_stats(dict(t=t, tau=y, err=err, band=band, P=P), priors=pri, with_red=False)
+    y2 = y + np.where(band == 1, P, 0.0)
+    b = oc_stats(dict(t=t, tau=y2, err=err, band=band, P=P), priors=pri, with_red=False)
+    assert abs(a["D"] - b["D"]) < 1e-6 and abs(a["jit0_s"] - b["jit0_s"]) < 1e-6

@@ -61,6 +61,27 @@ def robust_unwrap(t, tau, band, P, n_iter=4, half_window=2):
     return out
 
 
+def align_bands(t, tau, err, band, P, priors, use=None):
+    """Whole-cycle alignment of each MACHO band to its band-lag prior.
+
+    Delays are defined modulo P and each band is unwrapped separately, so a band's series can sit k whole cycles away from
+    the offset the prior expects (found in ~13% of real MACHO stars; with a 300-s prior this forces the fit to absorb
+    ~P of tension, inflating jitter and D). k is fitted with a free-offset H0 fit and removed. `use`: boolean mask of the
+    seasons allowed to inform k (e.g. the training set of the predictive test). Returns the aligned delays."""
+    if not priors:
+        return tau
+    use = np.ones(t.size, bool) if use is None else use
+    X, names = design(t[use], band[use], np.average(t[use], weights=err[use] ** -2))
+    _, _, b, _ = profile_lnl(X, tau[use], err[use], names, default_s_grid(err[use]))
+    out = tau.copy()
+    for bb, (mu, _) in priors.items():
+        key = f"off{bb}"
+        if key in names:
+            k = np.round((b[names.index(key)] - mu) / P)
+            out[band == bb] -= k * P
+    return out
+
+
 # ------------------------------------------------------------------ design and likelihood
 def design(t, band, t_ref, P_orb=None, n_harm=1):
     x = (np.asarray(t) - t_ref) / 1000.0
@@ -235,6 +256,7 @@ def oc_stats(series: dict, priors=None, n_harm_detect=1, p_min=400.0, with_red=T
     t, tau, err, band = t[o], tau[o], err[o], band[o]
     tau_raw = tau.copy()
     tau = robust_unwrap(t, tau, band, P)
+    tau = align_bands(t, tau, err, band, P, priors)
     periods = period_grid(np.ptp(t), p_min=p_min)
     r1 = orbit_search(t, tau, err, band, periods, 1, priors)
     r2 = orbit_search(t, tau, err, band, periods, 2, priors)
@@ -279,6 +301,7 @@ def oc_stats(series: dict, priors=None, n_harm_detect=1, p_min=400.0, with_red=T
                 if mr.any():
                     y = y + P * np.round((tau_p[mr][0] - y[-1]) / P)
                 tau_p[mt] = y
+        tau_p = align_bands(t, tau_p, err, band, P, priors, use=tr)      # cycle alignment from training seasons only
         rtr = orbit_search(t[tr], tau_p[tr], err[tr], band[tr], period_grid(np.ptp(t[tr]), p_min=p_min), n_harm_detect, priors)
         out["P_train"], out["D_train"] = rtr["P_best"], rtr["D"]
         out["pred_score"] = predictive_score(t, tau_p, err, band, test, rtr["P_best"], n_harm_detect, priors)
