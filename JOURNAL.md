@@ -525,3 +525,14 @@ Provisional: Part-A (v3) real data; thresholds and contamination rates to be fin
   8/13 Tier 2, 13/31 Tier 3.
 - Write-up: new §7 "Part C: the candidates compared with the Galactic-bulge sample" (tiers, Hajdu follow-up status, comparison table + figure, strengths and weaknesses,
   expectation, Gaia test + DR4 forecast); 16 pp. Note: one DOI (Alcock+2000) was first written from memory; now verified via Crossref.
+
+### OGLE-IV LMC data after 2016 (user question) — `scripts/ogle_post2016_cadence.py`, `scripts/ogle_post2016_forecast.py`
+- Public OGLE-IV RRL light curves end at HJD′ ≈ 7516 (mid-2016) for 95% of the 41,209 stars; 1,432 (the 2017/2019 catalogue extensions; mostly outer fields,
+  median 8° from the centre) extend to 8924 (2020.2) → OGLE observed the LMC after 2016. Per observing year (stars with data; median epochs):
+  2017.4: 1322 stars, 106; 2018.4: 1328, 5 (outer fields); 2019.4: 154, 39.
+- **In the candidates' own fields** (11/15 fields host late public stars; all Tier-1 fields LMC502–517, 552 except 552): 2017.4–18.4 ≈ 26–68, 2018.4–19.4 ≈ 37–110,
+  2019.4–20.4 ≈ 40 epochs/yr → three post-2016 seasons exist (not public for the original catalogue stars). Candidates' 2010–2016 OGLE-IV: 54 epochs/season, 132 s/season
+  → post-2016 seasons expected at ≈ 90–150 s per season.
+- **Decisiveness forecast** (orbit vs no-orbit extrapolations at the 2017–2020 season centres, 130 s/season; extrapolation uncertainty NOT included → optimistic):
+  Tier 1: 11/11 with S/N > 3, 8/11 > 5, median 9.3 (e.g. 03269 31, 10449 20, 22630 16); Tier 2: 16/17 > 3, median 7.4.
+  → Obtaining the 2017–2020 OGLE-IV photometry for ~30 stars (request to the OGLE team) would confirm or reject essentially all Tier-1/2 candidates.
