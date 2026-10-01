@@ -474,26 +474,28 @@ orbital parameters are 2--4 times more precise ($\sigma_A/A$ 1.7\% vs 6.7\%, $\s
 for Q1 vs Tier 1). Their seasons were also split into segments (more O$-$C points). Their posterior widths assume white timing
 noise beyond a constant $\dot P$, which understates the uncertainty if the period wanders (\cref{sec:nuis}).
 
-\paragraph{Where our sample is stronger: robustness against the dominant false-positive mechanism.}
-The main way an RR~Lyrae imitates an orbit is slow intrinsic phase wander (irregular period changes are common in every
-population studied; e.g.\ \citealt{Alcock2000} for LMC RRc). Four properties of our Tier~1 address it directly:
+\paragraph{What our sample adds, and what it does not.}
+The main way an RR~Lyrae imitates an orbit is intrinsic phase wander (irregular period changes are common in every population
+studied; e.g.\ \citealt{Alcock2000} for LMC RRc). Our Tier~1 differ from the bulge candidates as follows:
 \begin{enumerate}[leftmargin=*]
-\item \textbf{Independent instruments.} The orbit must be the same in MACHO ($B$, $R$; Mount Stromlo, 1992--1999) and OGLE
-($I$; Las Campanas, 1997--2016). The bulge O$-$C diagrams come from OGLE alone.
-\item \textbf{More cycles}: median 2.9 vs 1.9. A single smooth excursion, the commonest form of wander, cannot produce two
-full, matching cycles.
-\item \textbf{An out-of-sample prediction passed}: every Tier~1 orbit, fitted to the 1997--2016 data, predicts the 1992--1996
-MACHO delays better than the no-orbit model (score $>2$). The bulge analysis has no equivalent (except one extrapolation check).
-\item \textbf{Calibrated contamination}: thresholds and nuisance rates come from simulations on the real cadences with a noise
-model matched to the real stars (smooth wander, \cref{sec:nuis}); the bulge pre-selection was by eye, without a false-alarm rate.
+\item \textbf{Independent instruments} (MACHO $B$, $R$ and OGLE $I$). This rules out \emph{instrumental} artefacts (time stamps,
+photometric systematics), but \emph{not} intrinsic wander, which every telescope sees identically (the same-season timing residuals
+of MACHO and OGLE are correlated, $\rho=0.37$, \cref{sec:nuis}).
+\item \textbf{More cycles} (median 2.9 vs 1.9). This helps, but a smooth wander with a correlation time of a few years still
+produces one or two bumps over 24\,yr, which a sinusoid plus a quadratic fits.
+\item \textbf{An out-of-sample prediction passed} (1992--1996 MACHO seasons). A partial safeguard only: smooth wander can continue
+smoothly into the held-out years (simulated wander passes the full Tier-1 proxy $\sim$1\% of the time).
+\item \textbf{Calibrated contamination}: simulations with a noise model matched to the real stars. This is what shows that the
+candidate \emph{number} is consistent with wander alone (Part B, \cref{sec:status}); the bulge analysis has no such calibration.
 \end{enumerate}
 \paragraph{Where they are alike.} Our sensitivity limit ($A\gtrsim350$\,s) restricts us to the high-amplitude regime of the
 bulge Q1 class: medians $A\approx800$\,s, $M_{2,\min}\approx0.45$--$0.5\,\Msun$, $K_1\approx6\,\kms$ in both
 (\cref{fig:hajdu}a, f). We cannot test the low-mass Q2/Q3 population ($M_{2,\min}\sim0.1$--$0.2\,\Msun$).
 
-\paragraph{Expectation.} The strongest Tier~1 candidates have passed exactly the tests that phase wander tends to fail, so we
-expect them to fare better than a typical bulge candidate. How many could still be wander will be quantified by the
-empirical-noise class of Part B (pass rate of the full Tier~1 criteria). Confirmation is, however, harder: at $V\approx19.4$,
+\paragraph{Expectation.} The v3 simulations (Part B) show that the number of our candidates is consistent with the tail of the
+real stars' own timing noise (69 observed vs $\sim$80 expected from noise at the candidate cuts; 24 vs $\sim$33 for a Tier-1 proxy).
+Neither sample therefore establishes binarity statistically; the same is likely true of the bulge sample, whose selection was not
+calibrated against intrinsic wander. What separates an orbit from wander is strict repetition over more cycles, i.e.\ more data. Confirmation is, however, harder: at $V\approx19.4$,
 measuring $K_1\sim6\,\kms$ requires $\sim$1--2\,\kms\ per epoch after removing a $\sim$60\,\kms\ pulsation curve
 (published LMC RR~Lyrae RVs reach 10--35\,\kms\ per epoch).
 
