@@ -577,3 +577,12 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
 - Median predictive sd: H1 179 s (2020), 282 s (2024); H0 1629 s, 2812 s.
 - **Expected decisiveness** (new OGLE season delays, 130 s + white jitter): 2017–2020 (3 seasons): Tier 1 median ln BF +4.0 if orbit (7/11 > 3), −53 if no orbit (11/11);
   2017–2026 (7 seasons): Tier 1 +8.4 (11/11 > 3) / −200 (11/11); Tier 2 +7.2 (17/17) / −101 (17/17). → post-2016 OGLE decides every Tier-1/2 candidate.
+
+## 2026-10-01 — Data request to OGLE (`docs/ogle_request_email.md`, `docs/ogle_request_email_short.md`)
+- Long draft (project, results, frozen predictions, request) and, at the user's request, a short version that motivates the request with our
+  binary-channel RR Lyrae work and asks for post-2016 OGLE-IV I (and V) photometry for all LMC OCVS RR Lyrae (whole sample → calibrated re-run).
+- To: I. Soszyński (soszynsk@astrouw.edu.pl, from the OCVS README); cc A. Udalski (address UNVERIFIED).
+- References verified (arXiv API + Crossref): Iorio & Belokurov 2021 MNRAS 502, 5686 (10.1093/mnras/stab005; arXiv:2008.02280);
+  Bobrick et al. 2024 MNRAS 527, 12196 (10.1093/mnras/stad3996; arXiv:2208.04332; Crossref issue date 2023-12);
+  Zhang et al. 2025 MNRAS 544, 2493 (10.1093/mnras/staf1789; arXiv:2504.06720); Iorio et al. 2026 A&A 712, A223 (10.1051/0004-6361/202659978; arXiv:2603.20429).
+- Pending: Part B results in the write-up; amplitude modulation in the empirical noise class + Part B re-run (approved; waits for free CPU).
