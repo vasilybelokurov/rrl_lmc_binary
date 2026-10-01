@@ -536,3 +536,12 @@ Provisional: Part-A (v3) real data; thresholds and contamination rates to be fin
 - **Decisiveness forecast** (orbit vs no-orbit extrapolations at the 2017–2020 season centres, 130 s/season; extrapolation uncertainty NOT included → optimistic):
   Tier 1: 11/11 with S/N > 3, 8/11 > 5, median 9.3 (e.g. 03269 31, 10449 20, 22630 16); Tier 2: 16/17 > 3, median 7.4.
   → Obtaining the 2017–2020 OGLE-IV photometry for ~30 stars (request to the OGLE team) would confirm or reject essentially all Tier-1/2 candidates.
+- **OGLE operations timeline** (subagent, docs/reviews/ogle_post2016.md): OGLE-IV observed the LMC continuously 2010.2 → 2020-03-15 (COVID stop), resumed 2022-08-12,
+  and is operating in 2026. Regular LMC fields: ~30–50 I epochs/season since 2014/15 (also after 2022). **High-cadence run 2022-10 → 2024-05 on the central fields**
+  (abstract of Mróz+2024, arXiv:2410.06251, verified by me; field list LMC502, 503, 509, 510, 516 and ~4870 epochs/field per the subagent's reading of the full text),
+  LMC531/LMC552 at high cadence in 2024/25–2025/26 (subagent, from XROM light curves). Public post-2016 LMC photometry: essentially none for RR Lyrae (OCVS RRL ends
+  2016-04-17); only on request from the OGLE team (as Rathour+2024 did).
+- **Our candidates in the 2022–24 high-cadence fields: 49/75, incl. 7/11 Tier 1** (03269, 05821, 09642, 10449, 16750, 16755, 17610); the other Tier 1:
+  11538 (LMC504), 15158 (LMC517), 16187 (LMC515), 22630 (LMC552, high cadence 2024–26 per subagent).
+  Expected per-season delay error at ~2400 epochs/season: 132 s × sqrt(54/2400) ≈ 20 s. → With OGLE data to 2024–2026 the baseline becomes 32–34 yr (1992–2026);
+  every candidate's orbit would be tested over ≥ 1 further cycle with far higher precision than the existing data.
