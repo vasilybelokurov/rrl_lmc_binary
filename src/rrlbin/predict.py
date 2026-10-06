@@ -59,3 +59,27 @@ def predict_h0_h1(t, y, err, band, t_pred, kep, gp_h0, gp_h1, priors=None):
     orb = lambda x: ltte_delay(np.asarray(x), kep["P"], kep["A_s"] / DAY, kep["e"], kep["omega"], kep["t_p"])
     m1, c1 = krige(t, y - orb(t), err, band, t_pred, gp_h1[1], gp_h1[2], gp_h1[0], priors)
     return (m0, c0), (m1 + orb(t_pred), c1)
+
+
+def interp_prediction(t_grid, mean, cov, t_new):
+    """Linear interpolation of a predictive mean (n,) and covariance (n, n) tabulated on t_grid to epochs t_new (m,):
+    mean' = W mean, cov' = W cov W^T with W the (m, n) linear-interpolation weights (exact for the frozen grid; the
+    error is negligible for a 30-d grid and >= 700-d correlation lengths). t_new must lie within t_grid."""
+    t_grid, t_new = np.asarray(t_grid, float), np.atleast_1d(np.asarray(t_new, float))
+    if t_new.min() < t_grid[0] or t_new.max() > t_grid[-1]:
+        raise ValueError("t_new outside the prediction grid")
+    W = np.zeros((t_new.size, t_grid.size))
+    i = np.clip(np.searchsorted(t_grid, t_new) - 1, 0, t_grid.size - 2)
+    f = (t_new - t_grid[i]) / (t_grid[i + 1] - t_grid[i])
+    W[np.arange(t_new.size), i], W[np.arange(t_new.size), i + 1] = 1 - f, f
+    return W @ mean, W @ cov @ W.T
+
+
+def gauss_score(d, mean, cov):
+    """ln N(d | mean, cov), chi^2 = r^T C^-1 r and the number of points, for a Gaussian predictive distribution."""
+    r = np.asarray(d) - mean
+    L = np.linalg.cholesky(cov)
+    z = np.linalg.solve(L, r)
+    chi2 = float(z @ z)
+    lnl = -0.5 * chi2 - np.log(np.diag(L)).sum() - 0.5 * r.size * np.log(2 * np.pi)
+    return lnl, chi2, r.size

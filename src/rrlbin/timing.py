@@ -261,12 +261,15 @@ def unwrap_delays(tau: np.ndarray, P: float) -> np.ndarray:
     return tau[0] + np.unwrap(TWO_PI * (tau - tau[0]) / P) * P / TWO_PI
 
 
-def delays_fixed_template(t, m, err, labels, coef, P, T0, min_season=8, clip=5.0, n_clip=3):
+def delays_fixed_template(t, m, err, labels, coef, P, T0, min_season=8, clip=5.0, n_clip=3, zp=None, full=False):
     """Per-season delays of a sparse light curve against a FIXED template shape (e.g. another band's well-measured template,
     for Gaia epoch photometry): each season fits (tau, dm, alpha) via _season_shift with a common zero point removed.
-    Returns (t_eff, tau, tau_err) per season (errors scaled by sqrt(max(chi2_nu, 1)))."""
+    zp: fixed zero point (e.g. the segment zero point of a fit_timing result); default: estimated from the medians.
+    Returns (t_eff, tau, tau_err) per season (errors scaled by sqrt(max(chi2_nu, 1))); with full=True also
+    (alpha, alpha_err, n_used, chi2nu, label)."""
     t, m, err, labels = map(np.asarray, (t, m, err, labels))
-    zp = np.median(m) - np.median(fourier_eval(coef, (t - T0) / P))
+    if zp is None:
+        zp = np.median(m) - np.median(fourier_eval(coef, (t - T0) / P))
     w = 1 / err ** 2
     out = []
     for s in np.unique(labels):
@@ -283,5 +286,8 @@ def delays_fixed_template(t, m, err, labels, coef, P, T0, min_season=8, clip=5.0
                 break
             keep = new
         chi2nu = r["chi2"] / max(keep.sum() - 3, 1)
-        out.append((r["t_eff"], r["tau"], np.sqrt(r["var_tau"] * max(chi2nu, 1.0))))
-    return tuple(np.array(x) for x in zip(*out)) if out else (np.empty(0),) * 3
+        sc = max(chi2nu, 1.0)
+        out.append((r["t_eff"], r["tau"], np.sqrt(r["var_tau"] * sc), r["alpha"], np.sqrt(r["var_alpha"] * sc),
+                    int(keep.sum()), chi2nu, s))
+    nret = 8 if full else 3
+    return tuple(np.array(x) for x in list(zip(*out))[:nret]) if out else (np.empty(0),) * nret

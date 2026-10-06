@@ -7,7 +7,7 @@ A_k = 0.155, 0.068, 0.049, 0.024, ...) and an OGLE-like cadence: seasons of ~240
 import numpy as np
 import pytest
 
-from rrlbin.timing import (fit_timing, fourier_dphi, fourier_eval, harmonic_amp_phase, season_labels,
+from rrlbin.timing import (delays_fixed_template, fit_timing, fourier_dphi, fourier_eval, harmonic_amp_phase, season_labels,
                            unwrap_delays)
 
 P, T0 = 0.5940743, 6000.13
@@ -158,3 +158,25 @@ def test_harmonic_coherence_zero_for_pure_delay_nonzero_for_shape_change():
         w = f.coh_err ** -2
         return np.sum(w * (f.coh - np.sum(w * f.coh) / w.sum()) ** 2) / (f.coh.size - 1)
     assert chi2nu(f) < 2.5 and chi2nu(f2) > 4
+
+
+def test_fixed_template_extends_gauge_to_new_seasons():
+    """Delays of NEW seasons measured against the (gauge-fixed) template and zero point of a fit to earlier seasons are in
+    the same gauge: (measured - true) is the same constant for the training and the new seasons, and re-measuring the
+    training seasons with the fixed template reproduces fit_timing's delays."""
+    rng = np.random.default_rng(11)
+    t = cadence(rng, n_seasons=16)
+    lab = season_labels(t)
+    step = rng.normal(0, 400, lab.max() + 1) / 86400
+    m, e = synth(t, lambda x: step[lab], rng, sigma=0.03)
+    tr = lab < 12
+    f = fit_timing(t[tr], m[tr], e[tr], np.full(tr.sum(), "O4"), P, T0, K=8)
+    zp = f.zp[list(f.seg_names).index("O4")]
+    _, tau_tr, _ = delays_fixed_template(t[tr], m[tr], e[tr], lab[tr], f.coef, P, T0, zp=zp)
+    wrap = lambda x: (x + P / 2) % P - P / 2
+    assert np.max(np.abs(wrap(tau_tr - f.tau))) * 86400 < 2.0
+    out = delays_fixed_template(t[~tr], m[~tr], e[~tr], lab[~tr], f.coef, P, T0, zp=zp, full=True)
+    assert len(out) == 8 and np.all(np.abs(out[3] - 1) < 0.05)                    # alpha ~ 1
+    c_tr = np.average(wrap(f.tau - step[f.season]), weights=f.tau_err ** -2)
+    d_new = wrap(out[1] - step[out[7]] - c_tr)
+    assert np.all(np.abs(d_new) < 4 * out[2])

@@ -54,9 +54,14 @@ def read_lc(path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return a[:, 0], a[:, 1], a[:, 2]
 
 
+LC_DIRS = {"ogle3": "ogle3_lmc_rrlyr", "ogle4": "ogle4_lmc_rrlyr",
+           # OGLE-IV light curves 2010-2026 from the OGLE team (2026-10-06; a strict extension of the public files)
+           "ogle4x": "ogle4_lmc_rrlyr_2026"}
+
+
 def lc_path(raw: str | Path, survey: str, ogle_id: str, band: str = "I") -> Path:
-    """Path of a light curve in data/raw; survey in {'ogle3', 'ogle4'}."""
-    return Path(raw) / f"{survey}_lmc_rrlyr" / "phot" / band / f"{ogle_id}.dat"
+    """Path of a light curve in data/raw; survey in {'ogle3', 'ogle4', 'ogle4x'} (see LC_DIRS)."""
+    return Path(raw) / LC_DIRS[survey] / "phot" / band / f"{ogle_id}.dat"
 
 
 # ------------------------------------------------------------------ MACHO

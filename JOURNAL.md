@@ -614,8 +614,40 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
 
 ### First look at the new files (300 random stars)
 - Same format as OCVS (HJD′, I, σ). I: 38,476 stars, V: 37,818. All are in the public OGLE-IV set; **2,733 public stars are absent** (to identify — outer-field additions?).
-- They are full OGLE-IV light curves, HJD′ 5260 → 11187 (2010.2 → 2026.0; p10 of the last epoch 10943): public epochs recovered 99.8% (median; p10 99.3%),
-  magnitudes identical on common epochs (median Δm = 0; per-star sd p50/p90 = 0/5 mmag) → a strict extension of the public data, same reduction.
+- They are full OGLE-IV light curves, HJD′ 5260 → 11187 (2010.2 → 2026.0; p10 of the last epoch 10943); public epochs recovered 99.8% (median; p10 99.3%).
+  **Correction (same day, found by the loader test):** the photometry is NOT identical everywhere. All stars in LMC502/503/509/510/511/516 (the high-cadence fields; 32% of a
+  1000-star sample) are re-reduced: per-epoch Δm sd p10/50/90 = 1.5/3.7/12 mmag (errors ~40 mmag), quoted errors 4 mmag smaller, p10 constant offset −0.036 mag
+  (absorbed by zero points / season Δm). Other fields: identical. My first statement ("identical") came from a too-coarse summary (median over stars).
 - Post-2016 (HJD′ > 7600) epochs per star p10/50/90 = 129/317/7241 (p90 = the 2022–24 high-cadence fields). Examples: 10449 706 → 5801 epochs; 03269 764 → 5869; 13854 701 → 7983.
 - Coverage: 27/28 frozen Tier-1/2 candidates and 73/75 v3 candidates are in the new data; missing 15201 (frozen) and 04400.
 - Next: wire the 2026 files into `load_star` (OGLE-IV segment taken from the new file when present), then test the frozen predictions (tag `predictions-2026-10-01`) before any refit.
+
+## 2026-10-06 — Extended OGLE-IV loader; TEST OF THE FROZEN PREDICTIONS with the 2017–2026 OGLE seasons
+### Code (tests: 43 pass)
+- `io.LC_DIRS` + survey `ogle4x`; `pipeline.load_star(..., ogle4="public"|"extended")` (default public → all earlier results reproduce). Test: OGLE-II/III untouched,
+  ≥ 99% public epochs present, Δm within the re-reduction tolerance, extends past 2016.
+- `timing.delays_fixed_template(..., zp=, full=True)` (fixed zero point; returns α, n, χ²_ν, label). Test: delays of NEW seasons against the template of a fit to
+  earlier seasons are in the same gauge (re-measured training seasons reproduce fit_timing to < 2 s; new seasons within 4σ of truth after the training gauge constant).
+- `predict.interp_prediction` (linear-interpolation weights W: mean W m, cov W C Wᵀ), `predict.gauss_score`. Test vs scipy; interpolation error 1e-4 relative.
+- `scripts/test_frozen_predictions.py` → results/predictions/test_2026-10-06.csv (+ _seasons.csv), plots/predictions_test/<id>.png. Nothing frozen is refitted:
+  (1) frozen frame rebuilt exactly as in freeze_predictions; (2) the public I light curve refitted → template + O4 zero point; its delays equal the frozen ones
+  (residual 0.0 s for 27/27; constant cycle offset); (3) new seasons (labels after the last public season; 2016/17–2019/20 and 2022/23–2025/26 → 8 per star)
+  measured against that fixed template, unwrapped from the last public season (largest jump 0.23 cycles → unambiguous); common mode for new years 0 (as frozen);
+  (4) score vs the frozen H1/H0 predictive distributions (+ err² + white²).
+
+### Result (27 of 28 frozen candidates; 15201 has no new data). Median new-season error 123 s.
+Classes: **orbit confirmed-like** (p(χ²|H1) > 0.01 and ln BF > 3): **2 — 13854 (Tier 2; ln BF +8.0, p 0.14; the predicted −5000-s turn-over and flattening seen
+in all 8 seasons) and 15158 (Tier 1; +7.2, p 0.30)**; **orbit rejected** (p < 0.001 and ln BF < −3): **20** (Tier 1: 9/11, Tier 2: 11/16), e.g. 03269 (new seasons
+−20σ from H1; O−C kept falling where the orbit turned up), 10449 (−3…−8σ; between H1 and H0); inconclusive: 5 (16187, 15587 [3 seasons], 08601, 03594, 13392).
+- Calibration (4000 draws per hypothesis at the observed epochs/errors): P(ln BF ≥ obs | H0) < 2.5e-4 for both 13854 and 15158 → under each star's own red-noise
+  null the agreement is not chance (27 trials → expected < 0.01 such cases), CONDITIONAL on the GP null being right for these stars.
+- H0 is rarely refuted (p(χ²|H0) > 0.05 for 23/27): its predictive bands are ±1600–2800 s wide, so the test is decisive mainly against H1.
+- Sensitivity: common mode ±60 s changes the classes by ≤ 1 star (15587 becomes confirmed-like at +60). Re-measurement with a template refitted to the full
+  2010–2026 light curve: median max difference 36 s (11166: 9431 s = a wrong local minimum of fit_timing in season 21 of the FULL fit, α = 1.37 — not in the primary
+  measurement → TODO before the refit: re-run the grid search in later iterations / flag α outliers).
+- **POST-HOC H1 variants (sensitivity, not the test):** the frozen H1 is narrow because the GP refitted after removing the orbit is often ~0 (e.g. 11538 A = 0).
+  H1 + bootstrap-envelope variance: p_h1 < 0.001 for 8, > 0.05 for 14; ln BF > 3: 01548, 09642, 13392, 13854, 15158, 15587, 16750.
+  H1 with the star's full H0 GP (double-counts the orbit signal; upper bound on H1 flexibility): rejected (p < 0.001) only 05817, 06521, 16755; ln BF > 3: 03594, 09642,
+  13854, 15587 (15158 drops to +1.7). → **The number of rejections depends on the H1 noise model; 13854 survives every variant.**
+- Reading: consistent with Part B (no population excess; most candidates expected to be red timing noise). Most frozen orbits fail; 13854 (and less robustly 15158)
+  passed a genuine out-of-sample prediction. A rejected best-fit orbit does not exclude a binary with other parameters → next: joint refit on 1992–2026.

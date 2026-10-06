@@ -16,10 +16,17 @@ MIN_EPOCHS = 100
 RAW = Path("data/raw")
 
 
-def load_star(ogle_id: str, macho_id=None, ra=None, dec=None, raw=RAW) -> dict:
-    """Light curves: {'I': (t, m, e, seg), 'MB': (t, m, e, seg), 'MR': (t, m, e, seg)} (MACHO bands only if available)."""
+def load_star(ogle_id: str, macho_id=None, ra=None, dec=None, raw=RAW, ogle4: str = "public") -> dict:
+    """Light curves: {'I': (t, m, e, seg), 'MB': (t, m, e, seg), 'MR': (t, m, e, seg)} (MACHO bands only if available).
+
+    ogle4 : 'public' (OCVS release, to 2016.3) or 'extended' (the 2010-2026 OGLE-team files where present, else public).
+    All OGLE-IV epochs share the segment 'O4' (same reduction; the extended files reproduce the public epochs exactly)."""
     out = {}
     p3, p4 = lc_path(raw, "ogle3", ogle_id), lc_path(raw, "ogle4", ogle_id)
+    if ogle4 == "extended" and lc_path(raw, "ogle4x", ogle_id).exists():
+        p4 = lc_path(raw, "ogle4x", ogle_id)
+    elif ogle4 not in ("public", "extended"):
+        raise ValueError(f"ogle4 must be 'public' or 'extended', not {ogle4!r}")
     t3, m3, e3 = read_lc(p3) if p3.exists() else (np.empty(0),) * 3
     t4, m4, e4 = read_lc(p4) if p4.exists() else (np.empty(0),) * 3
     seg = np.r_[np.where(t3 < 2000, "O2", "O3"), np.full(t4.size, "O4")]

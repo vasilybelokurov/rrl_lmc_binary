@@ -102,3 +102,28 @@ def test_krige_interpolates_and_widens():
     X = np.vander((t - t.mean()) / 1000, 3)
     b = np.linalg.lstsq(X, y, rcond=None)[0]
     assert np.allclose(m0, np.vander((tp - t.mean()) / 1000, 3) @ b, atol=1e-7)
+
+
+def test_interp_prediction_and_gauss_score():
+    """Interpolation of a tabulated predictive distribution is exact for a linear mean and reproduces the covariance of
+    a smooth GP at grid points; gauss_score equals scipy's multivariate normal log-density, and data drawn from H1
+    favour H1 over a distinct H0 (positive mean ln BF)."""
+    import pytest
+    from scipy.stats import multivariate_normal
+    from rrlbin.predict import gauss_score, gp_kernel, interp_prediction
+    tg = np.linspace(0, 3000, 101)
+    mean, cov = 2.0 * tg + 5, gp_kernel(tg, tg, 300.0, 1500.0) + 1e-6 * np.eye(tg.size)
+    tn = np.array([0.0, 17.0, 1234.5, 3000.0])
+    m, C = interp_prediction(tg, mean, cov, tn)
+    assert np.allclose(m, 2.0 * tn + 5)
+    assert np.allclose(C, gp_kernel(tn, tn, 300.0, 1500.0), rtol=1e-3, atol=0)     # 1e-4 relative between grid points
+    with pytest.raises(ValueError):
+        interp_prediction(tg, mean, cov, [3001.0])
+    C = C + np.eye(4) * 100.0 ** 2
+    d = m + 50.0
+    lnl, chi2, n = gauss_score(d, m, C)
+    assert np.isclose(lnl, multivariate_normal(m, C).logpdf(d)) and n == 4
+    rng = np.random.default_rng(3)
+    m0 = m + 600.0
+    bf = [gauss_score(x, m, C)[0] - gauss_score(x, m0, C)[0] for x in rng.multivariate_normal(m, C, 200)]
+    assert np.mean(bf) > 3
