@@ -808,3 +808,22 @@ null: 300 random stars × 2 simulated from their own fitted H_RN, identical fits
   modulation (≈ 2 of 16 coherent-intrinsic stars here — small numbers).
 - Orbit-like group in the random sample: coherent, below the ceiling, no amplitude modulation: ≈ 10 of 3000 (0.3%) — to be tested properly in stage 3.
 - Caveats: K from the GP amplitude is a rough proxy; P_q < 600 d may include annual-sampling effects; dCoh grows with S/N (templates at S/N 4–8).
+
+## 2026-10-06 evening — Stage 2 started: amplitude channel of H_BL
+- Sims B2 (Level 2, MACHO) slow: started 16:54, still running 20:40 (machine load average ~250: another 9-core job + others; workers at ~65%).
+- Season error correlation corr(τ, α) from the Fisher matrix (40 random stars, 864 seasons, extended data): |ρ| p50/p90/p99 = 0.09/0.26/0.57 → marginal
+  errors acceptable for now; store the covariance at the next Level 1 rerun.
+- `models.fit_amp_mod` (α_j = per-band constant + jitter vs + sinusoid at the timing period; d2lnl ~ χ²₂ under no modulation; test: 10% modulation detected,
+  null mean 1.4–2.8, < 1% above 13.8). Applied to the 131 survey stars with a significant periodic component (results/stage1/ampmod_significant.csv):
+  | group | n | d2lnl median | frac d2 > 13.8 | amp_mod median | phase amp median [cycles] |
+  |---|---|---|---|---|---|
+  | coherent, above ceiling (intrinsic) | 16 | 7.9 | 0.31 | 0.063 | 0.032 |
+  | coherent, below ceiling | 32 | 1.9 | 0.13 | 0.009 | 0.013 |
+  | decoheres | 41 | 2.0 | 0.05 | 0.021 | 0.025 |
+  | ambiguous | 42 | 3.6 | 0.12 | 0.020 | 0.020 |
+  (n differs from stage 1b: here random + candidate stars above the ΔQP threshold.)
+  Reading: in the coherent intrinsic group the amplitude varies strongly (α χ²_ν median 12.8, 88% > 2: stage 1b) but only 31% show a SINUSOIDAL α modulation
+  at the timing period → the discriminating information is the overall amplitude/shape variability, not a strictly synchronous sinusoid. H_BL must model α
+  variability more generally (e.g. α red noise, possibly correlated with τ), and its leakage must be measured empirically: P(α χ²_ν < 2 | coherent intrinsic)
+  ≈ 2/16 ≈ 12% (95% CI roughly 2–38%; small numbers → enlarge the sample with the full 17.5k survey).
+- The 51 candidates with a significant periodic component: none has d2lnl > 13.8 — expected, they were pre-selected by the α veto.

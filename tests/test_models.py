@@ -65,3 +65,18 @@ def test_fit_rn_prefers_red_noise_and_qp_nests_it_poorly():
     r = fit_rn(t, y, err, band, n_amp=8, n_s=4)
     assert r["lnl"] - max(ml_lnl(t, y, err, band, None, s) for s in (0.0, 1e-3, 3e-3, 1e-2)) > 5
     assert 350 <= r["ell"] <= 3000
+
+
+def test_fit_amp_mod_detects_modulation_and_is_chi2_under_null():
+    """alpha modulated at P (10%) is detected (d2lnl large, amplitude recovered); without modulation d2lnl ~ chi^2_2
+    (mean ~ 2, few above 13.8 = the 0.1% point)."""
+    from rrlbin.models import fit_amp_mod
+    rng = np.random.default_rng(6)
+    t, band, _ = seasons(rng, 30)
+    band = np.r_[np.zeros(22, int), np.ones(8, int)]
+    ae = np.full(t.size, 0.02)
+    a = 1 + 0.10 * np.sin(2 * np.pi * t / 3000 + 0.7) + rng.normal(0, 1, t.size) * ae
+    r = fit_amp_mod(t, a, ae, band, 3000.0)
+    assert r["d2lnl"] > 50 and abs(r["amp_mod"] - 0.10) < 3 * r["amp_mod_err"]
+    d = [fit_amp_mod(t, 1 + rng.normal(0, 1, t.size) * ae, ae, band, 3000.0)["d2lnl"] for _ in range(300)]
+    assert 1.4 < np.mean(d) < 2.8 and np.mean(np.array(d) > 13.8) < 0.01

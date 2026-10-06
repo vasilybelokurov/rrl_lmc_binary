@@ -130,3 +130,39 @@ def fit_rn(t, y, err, band, priors=None, ells=RN_ELLS, n_amp=12, n_s=8):
                 if l > best[0]:
                     best = (l, dict(A=float(A), ell=float(ell), s=float(s)))
     return dict(lnl=best[0], **best[1])
+
+
+def fit_amp_mod(t, alpha, alpha_err, band, P, n_s=12):
+    """H_BL amplitude channel: is the season amplitude scale alpha_j modulated at the timing period P?
+
+    Model (a): alpha_j = a_b (per-band constant) + white jitter s_a; model (b): (a) + a sinusoid of period P with free amplitude
+    and phase (common to all bands; alpha is normalized per band, so the modulation is fractional). An LTTE orbit predicts (a);
+    Blazhko-like modulation predicts (b) with the timing and amplitude modulation at the same period. Returns dict with
+    lnl0, lnl1, d2lnl = 2 (lnl1 - lnl0) (~ chi^2_2 under (a) if errors are right; calibrate by simulation) and the fitted
+    fractional modulation amplitude amp_mod with its error (from the WLS covariance at the best jitter)."""
+    t, a, ae = (np.asarray(x, float) for x in (t, alpha, alpha_err))
+    band = np.asarray(band).astype(int)
+    bands = np.unique(band)
+    X0 = np.column_stack([(band == b).astype(float) for b in bands])
+    w = 2 * np.pi * t / P
+    X1 = np.column_stack([X0, np.sin(w), np.cos(w)])
+    sg = np.r_[0.0, np.geomspace(0.1, 30, n_s) * np.median(ae)]
+
+    def best(X):
+        out = (-np.inf, None, None)
+        for s in sg:
+            v = ae ** 2 + s ** 2
+            sw = 1 / np.sqrt(v)
+            beta, *_ = np.linalg.lstsq(X * sw[:, None], a * sw, rcond=None)
+            r = a - X @ beta
+            l = -0.5 * np.sum(r ** 2 / v + np.log(2 * np.pi * v))
+            if l > out[0]:
+                cov = np.linalg.inv((X * (1 / v)[:, None]).T @ X)
+                out = (l, beta, cov)
+        return out
+    l0, _, _ = best(X0)
+    l1, b1, c1 = best(X1)
+    amp = float(np.hypot(b1[-2], b1[-1]))
+    g = np.array([b1[-2], b1[-1]]) / max(amp, 1e-12)
+    amp_err = float(np.sqrt(g @ c1[-2:, -2:] @ g))
+    return dict(lnl0=l0, lnl1=l1, d2lnl=2 * (l1 - l0), amp_mod=amp, amp_mod_err=amp_err)
