@@ -791,3 +791,20 @@ Conclusions (tested):
 3. Any timing-only claim for low-e orbits is conditional on intrinsic modulation being less coherent than the bound; signals more coherent than the bound
    are indistinguishable (27–48% leakage). → the coherence distribution of intrinsic modulation must be MEASURED (population of real stars) or bounded by
    external data; eccentric high-S/N signals are the robust class.
+
+## 2026-10-06 — Stage 1b result: periodic timing components in real RR Lyrae and their coherence (results/stage1/coherence_survey.parquet, coherence_null.parquet)
+Survey: 3,000 random v4 stars + 146 candidates (3,113 unique; 0 failures), fits H_W (white), H_RN (SE red noise), H_QP (coherence c ∈ {0.5, 1, 2, 4, ∞});
+null: 300 random stars × 2 simulated from their own fitted H_RN, identical fits (600; 0 failures).
+- ΔQP = lnL_QP − lnL_RN (periodic component beyond red noise), random sample vs null, p50/90/99/99.9: real 1.9/4.8/12.4/28.9; null 1.9/4.6/8.0/8.7.
+  Above the null 99% (8.0): 91/3000 (expected 30) → excess 61 (2.0%); above the null 99.9% (8.7): 75 (expected 3) → excess 72 (**2.4% of stars have a
+  periodic timing component beyond smooth red noise**). Their P_q p10/50/90 = 451/1353/4390 d (15/91 below 600 d); amplitude ≈ 3.9 σ_season (median).
+- Coherence of the 91 significant stars: dCoh = lnL_QP(c = ∞) − max_{c ≤ 1} lnL_QP: p10/50/90 = −11/0.5/5.9. Calibration (stage-1 sims): QP c ≤ 1 → median −15…−17;
+  c = 2 → −10; c = ∞ → +4.3; LTTE → +2.8 (e = 0.5) … +6.1 (e = 0). Classes: decoheres (dCoh < −4) 27, coherent (> 2) 37, ambiguous 27.
+- Physical ceiling (LTTE amplitude for M2 = 2 Msun, edge-on, M1 = 0.65, at P_q; K ≈ √2 A_qp): 46/91 above → cannot be orbits. **Coherent AND above the
+  ceiling: 16** → strictly coherent intrinsic timing modulation EXISTS; coherence alone is not a binary signature (the bound idea of stage 1 cannot be justified).
+- Amplitude modulation (α χ²_ν, median; fraction > 2): coherent above ceiling 12.8, 88%; decoheres 3.5, 78%; ambiguous 3.8, 70%; coherent below ceiling 2.1, 52%;
+  not significant 1.5, 34%. → coherent intrinsic modulation comes with amplitude modulation (Blazhko-like) in ~90% of cases: **the amplitude/shape channel
+  (H_BL, joint τ + α + harmonic coherence), not a coherence bound, is the discriminant for coherent signals.** Irreducible residual: phase-only coherent
+  modulation (≈ 2 of 16 coherent-intrinsic stars here — small numbers).
+- Orbit-like group in the random sample: coherent, below the ceiling, no amplitude modulation: ≈ 10 of 3000 (0.3%) — to be tested properly in stage 3.
+- Caveats: K from the GP amplitude is a rough proxy; P_q < 600 d may include annual-sampling effects; dCoh grows with S/N (templates at S/N 4–8).
