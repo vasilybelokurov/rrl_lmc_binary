@@ -851,3 +851,18 @@ simulations drawn from the stage-2 models fitted to real stars.
   `models._Lik.lnl_grid`: batched profiled likelihood over the (A, s) grid for each kernel shape (one batched Cholesky/solve); fit_white, fit_qp, fit_rn use it.
   Test: equals ml_lnl at every grid point to 1e-8 (with offsets and priors). End to end on 40 survey stars: all likelihoods identical to < 1e-9, same P_q and
   coherence; 0.40 s per star (was ~3.5 s). All-star survey relaunched (16,929 stars, 6 workers; ~20–30 min).
+
+## 2026-10-06 — Upper limit on the binary fraction, 1992–2026 (`scripts/upper_limit_v4.py` → results/partB_v4/upper_limits.csv)
+MACHO+OGLE stars N = 6,612; candidates k = 93 (v4 cuts); Poisson 95% upper limit on k: 110.5. Completeness ε from 5,996 injected Keplerian orbits in
+simulated light curves of real stars (P logU 300–10⁴ d, M2 logU 0.05–1.5 Msun, M1 0.65, isotropic, half eccentric).
+| M2 [Msun] | P [d] | ε | f < (model-free: all 93 counted as binaries) | f < (noise-subtracted, b = 112; b × 0.5) |
+|---|---|---|---|---|
+| 0.4–1.5 | 1000–10000 | 0.57 | **2.9%** | 0.3% (1.5%) |
+| 0.4–1.5 | 1000–3000 | 0.52 | 3.2% | 0.4% (1.6%) |
+| 0.4–1.5 | 3000–10000 | 0.61 | 2.8% | 0.3% (1.4%) |
+| 0.4–1.5 | 300–1000 | 0.10 | 16.5% | 1.9% (8.1%) |
+| 0.15–0.4 | 3000–10000 | 0.33 | 5.1% | 0.6% (2.5%) |
+| 0.15–0.4 | 1000–10000 | 0.23 | 7.2% | 0.8% (3.6%) |
+| 0.05–0.15 | any | ≤ 0.04 | no useful limit | — |
+Caveat: ε is measured for orbits with photometric noise only; intrinsic red timing noise in real binaries could lower ε for weak signals (small effect for
+M2 ≥ 0.4, whose amplitudes 500–2000 s exceed the typical red noise ~400 s). The noise-subtracted limit depends on the red-noise model (b ≈ k: no excess).
