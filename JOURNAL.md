@@ -754,3 +754,5 @@ modulation, joint with α_j, c_j); per-alternative parametric bootstrap, interse
 | f_bin from a selection-aware likelihood: E[pass] = Σ_i [f ε_i + (1−f) α_i], ε_i, α_i per star (cadence, bands, errors) from end-to-end sims | agree | essential; supersedes the averaged-ε Part B estimate |
 | Bayesian per-star comparison not clearly better (priors decide where likelihoods overlap); hybrid: calibrated per-star evidence + hierarchical population model | agree | adopt the hybrid |
 | validations: p calibration under each null; identifiability experiment; end-to-end through light curves + selection; f_bin recovery at f = 0 and low f with varied nuisance mixes | agree | the identifiability experiment and the f = 0 end-to-end mock are the two gating tests |
+
+## 2026-10-06 — Plan written: docs/PLAN.md (living document: goal, current state, stages 0–7 with gates, false-positive list, rules). Update its status column with every stage.
