@@ -875,3 +875,19 @@ steady (α χ²_ν < 2 and survey d2lnl < 13.8) 133; predicted later data 14 (bl
 13083, 00604, 08275, 00723, 11047, 04633, 03700, 08101, 18547, 16301 (split test; not blind for stars selected with post-2016 data). Predicted RV semi-amplitudes
 K1 2.9–11.5 km/s; M2,min 0.16–0.88 Msun; P 5.4–13.6 yr. 16301: e = 0.75, K1 upper error to 29 km/s → orbit poorly constrained.
 50 stars pass the physical/cycle/amplitude checks but failed the prediction test (listed by the script).
+
+## 2026-10-06 — Upper limit CORRECTED for the amplitude veto; literature comparison
+- **Correction:** the injected binaries had steady pulsation amplitudes, but the candidate cuts include the amplitude (α) veto, which only 61% of real MACHO
+  stars pass (63.5% of all stars; Blazhko-like amplitude changes). A binary hosted by such a star is rejected → ε_real = 0.609 ε_sim (assumes amplitude
+  behaviour independent of binarity). Corrected model-free 95% limits (results/partB_v4/upper_limits.csv, column f_max_alpha_corrected):
+  M2 0.4–1.5 Msun: **f < 4.8% (P 1–10 kd)**, 5.2% (1–3 kd), 4.5% (3–10 kd); M2 0.15–0.4: 8.3% (3–10 kd), 11.9% (1–10 kd). The earlier 2.9% (and the v3
+  2.7%) omitted this factor and were too strong. Found while checking Hajdu+2015, who apply the same kind of correction (×2 for Blazhko stars).
+- Literature (verified on arXiv/ADS abstracts or full text):
+  - Hajdu et al. 2015, MNRAS 449, L113 (arXiv:1502.01318): OGLE-III bulge, 20 probable LTTE binaries among 1952 RRab (~1%); × 2 for Blazhko stars, × 2 for
+    missed long-period / low-inclination systems → "≳ 4 per cent" of RRL in binaries. A rough estimate that counts all candidates as real; all companion masses.
+  - Hajdu et al. 2021, ApJ 915, 50 (arXiv:2105.03750): 87 bulge candidates, P > 1000 d, three companion-mass groups (~0.6, 0.2, 0.067 Msun); no fraction given;
+    none confirmed or refuted since (Salinas+2026, arXiv:2603.28684).
+  - Kervella et al. 2019, A&A 623, A116 (arXiv:1811.08902): Hipparcos–Gaia DR2 proper-motion anomaly, 13 of 198 nearby RRL significant + 61 candidates →
+    binary fraction ≥ 7% (nearby field RRL; PMa sensitivity, not LTTE).
+  - Iorio et al. 2026, A&A 712, A223 (arXiv:2603.20429): no genuine RRL binary in Gaia DR3 astrometric catalogues; for metal-rich ([Fe/H] > −0.6) RRL with
+    P ~ 900–2000 d the fiducial models give an upper limit ≈ 0.3; ≈ 0.7–0.8 not excluded for the most metal-rich subsample / other assumptions.
