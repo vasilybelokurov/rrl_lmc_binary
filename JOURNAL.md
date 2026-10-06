@@ -664,3 +664,16 @@ fields re-reduced after Soszyński+2016 — consistent with the re-reduction fou
 - `test_frozen_predictions.py`: `--clip` option; per-season stability flag (delay with only > 8σ points removed differs by > 3σ) and scores on stable seasons only.
   Unstable: 1 of 211 seasons (17610/23); classes identical with stable seasons only (2 confirmed-like 13854, 15158; 20 rejected; 5 inconclusive).
 - TODO for the 1992–2026 refit: gross-outlier pre-clip (8σ) before the 4σ clip in fit_timing, a per-season stability flag, and the later-iteration grid search (11166).
+
+## 2026-10-06 — Codex review of the prediction test (docs/reviews/2026-10-06_codex_prediction_test.md, effort high) — my verification
+| Codex finding | my verdict | evidence / action |
+|---|---|---|
+| primary comparison is out of sample; no post-2016 data in the frozen side | agree (Codex verified in code) | — |
+| `load_star` docstring claims the extended files reproduce public epochs exactly | **confirmed** (my error; re-reduced central fields) | fix the docstring |
+| re-reduction might shift phases | checked: public 2010–16 seasons re-measured on the extended photometry, fixed template: same-epoch seasons shift 0–25 s (errors ~120 s); larger shifts (13854 2010: 459 s; 01548: 643 s; 07957: 799 s) only in sparse seasons where the extended file ADDS epochs (25 → 39), all < 1.5σ | negligible for the test; note |
+| frozen artifacts not hash-checked by the test | confirmed (test does not check); verified now: table sha256 matches meta; `git diff predictions-2026-10-01` empty for table, meta, cov_2026-10-01/, common_mode_v3, band_lag_v3, series_v3, partC_tiers | add the hash/tag check to the script |
+| ln BF is a conditional predictive log-score difference (point estimates of orbit and GP), not a marginal Bayes factor | agree | rename in write-up |
+| MC tail: report exceedance counts + binomial interval | agree: 0/4000 → 95% upper limit 7.5e-4 per star (×27 trials → ≤ 0.02 expected) | report so |
+| H1 too narrow; state the 20 as "frozen best-fit orbit forecasts strongly inconsistent under the stated H1 noise model", not "not binaries" | agree (my own caveat) | wording |
+| "2 confirmed-like" ≠ detections: conditional on the SE-GP null (fixed ℓ grid); quasi-periodic red noise not covered; selection not in the calibration | agree | end-to-end calibration: sims through timing extraction, selection and the same confirmation rule; add quasi-periodic nulls |
+| refit plan: keep the frozen test separate; retain clipped + unclipped solutions; common mode for new years from control stars with field/reduction terms and leave-one-out; joint fits vs flexible red-noise alternatives, aliases, parameter uncertainty, posterior predictive checks | agree | adopt in the plan |
