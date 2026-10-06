@@ -83,3 +83,50 @@ def gauss_score(d, mean, cov):
     chi2 = float(z @ z)
     lnl = -0.5 * chi2 - np.log(np.diag(L)).sum() - 0.5 * r.size * np.log(2 * np.pi)
     return lnl, chi2, r.size
+
+
+def split_test(t, y, err, band, P, t_split, priors=None, min_train=8, min_test=3):
+    """Out-of-sample orbit test on one O-C series (real or simulated; delays [d], common mode already applied).
+
+    Training = all seasons with t < t_split; test = OGLE I (band 0) seasons with t >= t_split. Everything fitted on the
+    training seasons only: robust unwrapping and band alignment, the O-C period search (P0), the H0 red-noise fit (GP, REML),
+    the Keplerian orbit (white jitter = the H0 white term) and the H1 red-noise fit after removing the orbit. The test seasons
+    are unwrapped sequentially from the last training season (whole cycles only) and scored against the H0/H1 kriging
+    predictions (+ err^2 + white^2): ln BF = ln L1 - ln L0 (a conditional predictive log-score difference), chi^2 p-values.
+    Returns a dict (empty 'ok': False if too few seasons)."""
+    from scipy.stats import chi2 as chi2_dist
+
+    from .kepler_fit import fit_keplerian
+    from .oc import align_bands, gp_null, orbit_search, period_grid, robust_unwrap
+
+    t, y, err, band = (np.asarray(x) for x in (t, y, err, band))
+    band = band.astype(int)
+    o = np.argsort(t)
+    t, y, err, band = t[o], y[o], err[o], band[o]
+    tr = t < t_split
+    te = (~tr) & (band == 0)
+    if tr.sum() < min_train or te.sum() < min_test or not np.any(band[tr] == 0):
+        return dict(ok=False)
+    tt, yt, et, bt = t[tr], y[tr], err[tr], band[tr]
+    yt = align_bands(tt, robust_unwrap(tt, yt, bt, P), et, bt, P, priors)
+    # test seasons: whole-cycle continuation from the last training OGLE season
+    i_last = np.flatnonzero(bt == 0)[-1]
+    prev, yn = yt[i_last], y[te].copy()
+    for j in range(yn.size):
+        yn[j] += P * np.round((prev - yn[j]) / P)
+        prev = yn[j]
+    periods = period_grid(tt.max() - tt.min())
+    P0 = orbit_search(tt, yt, et, bt, periods, priors=priors)["P_best"]
+    s0, A0, l0 = gp_null(tt, yt, et, bt, priors)
+    kf = fit_keplerian(tt, yt, et, bt, P0, s_jit=s0, priors=priors, n_boot=0)
+    kep = dict(P=kf["P"], A_s=kf["A_s"], e=kf["e"], omega=kf["omega"], t_p=kf["t_p"])
+    orb = ltte_delay(tt, kep["P"], kep["A_s"] / DAY, kep["e"], kep["omega"], kep["t_p"])
+    s1, A1, l1 = gp_null(tt, yt - orb, et, bt, priors)
+    tp = t[te]
+    (m0, C0), (m1, C1) = predict_h0_h1(tt, yt, et, bt, tp, kep, (s0, A0, l0), (s1, A1, l1), priors)
+    e2 = err[te] ** 2
+    l1_, c1_, n = gauss_score(yn, m1, C1 + np.diag(e2 + s1 ** 2))
+    l0_, c0_, _ = gauss_score(yn, m0, C0 + np.diag(e2 + s0 ** 2))
+    return dict(ok=True, n_train=int(tr.sum()), n_test=int(n), P0_train=P0, P_kep_train=kep["P"], A_kep_train_s=kep["A_s"],
+                e_kep_train=kep["e"], A_gp_h0_s=A0 * DAY, A_gp_h1_s=A1 * DAY, lnBF=l1_ - l0_, chi2_h1=c1_, p_h1=float(chi2_dist.sf(c1_, n)),
+                chi2_h0=c0_, p_h0=float(chi2_dist.sf(c0_, n)), med_err_test_s=float(np.median(err[te]) * DAY))

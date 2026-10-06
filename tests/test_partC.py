@@ -127,3 +127,25 @@ def test_interp_prediction_and_gauss_score():
     m0 = m + 600.0
     bf = [gauss_score(x, m, C)[0] - gauss_score(x, m0, C)[0] for x in rng.multivariate_normal(m, C, 200)]
     assert np.mean(bf) > 3
+
+
+def test_split_test_orbit_vs_red_noise():
+    """split_test: an LTTE orbit (1000 s, 4000 d) plus white noise on a 1992-2026-like season grid is favoured out of sample
+    (ln BF > 3, p(chi2|H1) > 0.01); smooth GP wander without an orbit is not favoured on average."""
+    from rrlbin.ltte import ltte_delay
+    from rrlbin.predict import gp_kernel, split_test
+    rng = np.random.default_rng(8)
+    t = np.r_[np.arange(-1000.0, 1700, 365.25), np.arange(2200.0, 7600, 365.25), np.arange(7800.0, 8900, 365.25),
+              np.arange(9950.0, 11100, 365.25)]
+    band = np.zeros(t.size, int)
+    err = np.full(t.size, 120.0) / 86400
+    P = 0.55
+    y_orb = ltte_delay(t, 4000.0, 1000.0 / 86400, 0.2, 1.0, 1500.0) + 0.3e-3 * ((t - 5000) / 1000) ** 2 + rng.normal(0, 1, t.size) * err
+    r = split_test(t, y_orb, err, band, P, 7600.0)
+    assert r["ok"] and r["n_test"] == 8 and r["lnBF"] > 3 and r["p_h1"] > 0.01
+    bf = []
+    for k in range(6):
+        K = gp_kernel(t, t, 900.0 / 86400, 1500.0) + np.eye(t.size) * err ** 2
+        y = rng.multivariate_normal(np.zeros(t.size), K)
+        bf.append(split_test(t, y, err, band, P, 7600.0)["lnBF"])
+    assert np.median(bf) < 3
