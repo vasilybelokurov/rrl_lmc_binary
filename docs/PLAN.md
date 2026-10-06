@@ -1,6 +1,6 @@
 # PLAN — LTTE binaries among LMC RR Lyrae (living document; update the status column as work proceeds)
 
-Last updated: 2026-10-06. Details and numbers: JOURNAL.md. Design rationale: docs/search_design.md + reviews/2026-10-06_codex_search_design.md.
+Last updated: 2026-10-07. Binary-fraction write-up: docs/binary_fraction/binary_fraction.pdf (f < 5.3%, M2 0.4-1.5 Msun, 1-10 kd). Details and numbers: JOURNAL.md. Design rationale: docs/search_design.md + reviews/2026-10-06_codex_search_design.md.
 
 ## Goal
 1. Population: the binary fraction f_bin of LMC RRab vs companion mass and orbital period (or an upper limit), with a stated detection efficiency.

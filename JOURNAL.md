@@ -895,3 +895,10 @@ K1 2.9–11.5 km/s; M2,min 0.16–0.88 Msun; P 5.4–13.6 yr. 16301: e = 0.75, K
 ## 2026-10-07 — Binary-fraction write-up in progress (docs/binary_fraction/binary_fraction.tex; plots/binary_fraction/)
 - Efficiency now measured by injecting Keplerian orbits into the REAL stars season delays (`scripts/inject_real.py`; 2 per star, 13,224; validation run on simulated noise-free stars follows). `upper_limit_v4.py` rewritten to use it (no separate amplitude correction; binomial uncertainty of eps; all numbers produced by the script).
 - Figures: O-C examples, D survival (real vs noise sims), funnel (93 vs 112 expected), amplitude-period, blind test; efficiency and limit figures after the run.
+- **Final efficiency and limits (2026-10-07 01:20)** — `inject_real.py`: 13,224 orbits injected into the real stars (0 failures); validation 2,998 into
+  noise-free simulated stars. 0.4–1.5 Msun, 1–10 kd: ε(real) = 0.326 (vs 0.346 = noise-free light-curve sims × real amplitude pass 0.609: the earlier
+  estimate was 6% optimistic; the 0.389 alternative is excluded); season-level vs light-curve-level injection: 0.586 vs 0.568 (> 1000 d), 0.131 vs 0.101
+  (300–1000 d) → per-bin correction (≤ 1). **Final 95% limits (counting all 93 candidates as binaries): M2 0.4–1.5 Msun: f < 5.3% (1–10 kd), 6.0%
+  (1–3 kd), 4.8% (3–10 kd), 23% (300–1000 d); M2 0.15–0.4: 9.6% (3–10 kd), 11.9% (1–10 kd); M2 < 0.15: no useful limit.** Noise-subtracted 0.6%
+  (2.6% with b halved; model dependent, not adopted). results/partB_v4/upper_limits.csv (+ _meta.json), scripts/writeup_numbers.py → numbers.tex.
+- Write-up compiled: docs/binary_fraction/binary_fraction.pdf (12 pp, 7 figures, 2 tables); every number generated from the result files.

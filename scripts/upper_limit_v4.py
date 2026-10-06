@@ -8,6 +8,8 @@ f N eps <= k95 (classical Poisson 95% upper limit for k observed) -> f < k95 / (
 eps, primary: orbits injected into the REAL stars' season delays (scripts/inject_real.py): real intrinsic timing noise, real
 amplitude (alpha) behaviour, real cadence and errors; no separate amplitude-veto correction. eps uncertainty: binomial (68%)
 from the number of injections in the bin, propagated to the limit.
+eps, final: eps(real stars) x min(eps_lc / eps_series, 1), the per-bin ratio of light-curve-level to series-level injection into
+the same simulated stars (corrects the neglected within-season smearing of the delay; conservative).
 eps, comparison: light-curve-level injections into simulated stars without intrinsic noise (v4 sims, class 'ltte'), times the
 real alpha pass rate 0.609 (the earlier estimate), and series-level injection into the same simulated stars (validation of the
 series-level shortcut).
@@ -79,8 +81,15 @@ def main():
             n, e, elo, ehi = eff(inj_real, m0, m1, p0, p1)
             nl, el, _, _ = eff(lc, m0, m1, p0, p1)
             row = dict(M2=name, P=f"{p0}-{p1}", n_inj=n, eps=e, eps_lo=elo, eps_hi=ehi, eps_lc_sims=el, eps_lc_sims_x_alpha=el * a_all)
+            corr = 1.0
             if inj_ser is not None:
-                row["eps_series_sims"] = eff(inj_ser, m0, m1, p0, p1)[1]
+                es = eff(inj_ser, m0, m1, p0, p1)[1]
+                row["eps_series_sims"] = es
+                corr = min(el / es, 1.0) if es > 0 else 1.0   # series-level shortcut vs light-curve injection (never > 1)
+            row.update(smear_corr=corr, eps_final=e * corr)
+            if e * corr > 0:
+                row.update(f_max_final=k95 / (N * e * corr), f_max_final_bkgsub=k95_bayes(k, b) / (N * e * corr),
+                           f_max_final_bkgsub_b_half=k95_bayes(k, 0.5 * b) / (N * e * corr))
             if e > 0:
                 row.update(f_max=k95 / (N * e), f_max_lo=k95 / (N * ehi), f_max_hi=k95 / (N * elo) if elo > 0 else np.inf,
                            f_max_bkgsub=k95_bayes(k, b) / (N * e), f_max_bkgsub_b_half=k95_bayes(k, 0.5 * b) / (N * e),

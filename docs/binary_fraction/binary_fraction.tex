@@ -179,7 +179,7 @@ each star's real intrinsic timing noise, real amplitude behaviour (so Blazhko-ty
 cadence and errors. The orbit is added at the season epochs, neglecting the smearing of the delay within a season (amplitude loss
 $\lesssim$10\% at 1000\,d, $\lesssim$1\% at 3000\,d); \VALIDATION
 
-\Cref{fig:eff} shows the result. For $0.4$--$1.5\,\Msun$ companions on 1{,}000--10{,}000-d orbits the efficiency is \EPS; it falls
+\Cref{fig:eff} shows the result. For $0.4$--$1.5\,\Msun$ companions on 1{,}000--10{,}000-d orbits the efficiency is \EPS\ (\EPSRAW\ before the smearing correction; the earlier estimate from simulated stars without intrinsic timing noise, multiplied by the fraction of real stars with a steady amplitude, was \EPSOLD, close to the direct measurement); it falls
 to \EPSLOWP\ at 300--1{,}000\,d (small amplitudes, season smearing) and is \EPSLOWM\ for $0.15$--$0.4\,\Msun$ at 3{,}000--10{,}000\,d.
 Binaries are missed because their orbit is seen nearly face-on, because the host star varies in amplitude (Blazhko type; the
 amplitude cut rejects it), or because the host's own timing noise distorts the signal.
@@ -187,7 +187,7 @@ amplitude cut rejects it), or because the host's own timing noise distorts the s
 \begin{figure}[ht]\centering
 \fig{fig_efficiency}{0.66}
 \caption{Probability that a binary is flagged as a candidate, from orbits injected into the real stars' timing data,
-in bins of orbital period and companion mass (averaged over inclination and eccentricity).}
+in bins of orbital period and companion mass (averaged over inclination and eccentricity; before the season-smearing correction, which lowers the values by 30\% below 1000\,d and $\le$6\% above). The values of 0.01--0.04 for low-mass companions are mostly stars that are flagged because of their own timing noise.}
 \label{fig:eff}
 \end{figure}
 

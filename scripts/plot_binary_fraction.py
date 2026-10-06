@@ -223,36 +223,37 @@ def fig_efficiency():
                 ax.text(np.sqrt(pe[j] * pe[j + 1]) / 365.25, np.sqrt(me[i] * me[i + 1]), f"{H[i, j]:.2f}", ha="center", va="center",
                         fontsize=6.5, color="white" if H[i, j] > 0.4 else INK)
     ax.set(xscale="log", yscale="log", xlabel="orbital period [yr]", ylabel="companion mass M$_2$ [M$_\\odot$]")
+    ax.grid(False)
     cb = fig.colorbar(im, ax=ax)
     cb.set_label("probability that the binary is flagged")
     save(fig, "fig_efficiency")
 
 
 def fig_upper_limit():
-    inj = pd.read_parquet("results/partB_v4/inject_real.parquet")
-    inj = inj[inj.err_msg.isna()] if "err_msg" in inj else inj
-    import json as _json
-    meta = _json.loads(Path("results/partB_v4/upper_limits_meta.json").read_text())
-    N, k95 = meta["N"], meta["k95"]
-    pe = np.geomspace(300, 1e4, 9)
-    pc = np.sqrt(pe[:-1] * pe[1:]) / 365.25
+    """Final limits from results/partB_v4/upper_limits.csv (efficiency from the real-star injections with the smearing
+    correction), drawn as horizontal segments over each period bin."""
+    T = pd.read_csv("results/partB_v4/upper_limits.csv")
     fig, ax = plt.subplots(figsize=(5.6, 3.9))
-    for (m0, m1), col in [((0.4, 1.5), C_REAL), ((0.15, 0.4), C_NOISE), ((0.05, 0.15), C_LTTE)]:
-        f = []
-        for j in range(len(pe) - 1):
-            g = inj[(inj.M2 >= m0) & (inj.M2 < m1) & (inj.P_orb >= pe[j]) & (inj.P_orb < pe[j + 1])]
-            e = g["all"].mean() if len(g) >= 20 else np.nan
-            f.append(k95 / (N * e) if e > 0 else np.nan)
-        ax.plot(pc, f, "-o", ms=4, color=col, label=f"M$_2$ = {m0}–{m1} M$_\\odot$")
+    for m2, col in [("0.4-1.5", C_REAL), ("0.15-0.4", C_NOISE), ("0.05-0.15", C_LTTE)]:
+        g = T[(T.M2 == m2) & (T.P != "1000-10000")]
+        first = True
+        for r in g.itertuples():
+            p0, p1 = (float(x) / 365.25 for x in r.P.split("-"))
+            f = r.f_max_final
+            if not np.isfinite(f):
+                continue
+            ax.plot([p0, p1], [f, f], color=col, lw=2.5, solid_capstyle="butt",
+                    label=f"M$_2$ = {m2.replace('-', '–')} M$_\\odot$" if first else None)
+            ax.annotate("", xy=(np.sqrt(p0 * p1), f * 0.8), xytext=(np.sqrt(p0 * p1), f), arrowprops=dict(arrowstyle="->", color=col, lw=1))
+            first = False
     ax.axhline(1.0, color=INK2, lw=0.8)
-    ax.text(0.9, 1.08, "100%", fontsize=7, color=INK2)
-    # literature (different methods / populations; see text)
-    ax.annotate("Hajdu+2015 (bulge, all masses):\nestimate ≳ 4% (a lower bound)", xy=(9.5, 0.04), xytext=(1.0, 0.012), fontsize=7, color=INK2,
-                arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
-    ax.plot([9.5], [0.04], marker="^", color=INK2, ms=6)
+    ax.text(28, 1.08, "100%", fontsize=7, color=INK2, ha="right")
+    ax.plot([9.5], [0.04], marker="^", color=INK2, ms=6, ls="none")
+    ax.annotate("Hajdu+2015 (bulge, all masses):\nestimate ≳ 4% (a lower bound)", xy=(9.5, 0.042), xytext=(0.9, 0.012), fontsize=7,
+                color=INK2, arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
     ax.plot([2.5, 5.5], [0.3, 0.3], color=INK2, lw=2)
-    ax.text(2.5, 0.35, "Iorio+2026: ≲ 30% (metal-rich MW disc, Gaia DR3)", fontsize=7, color=INK2)
-    ax.set(xscale="log", yscale="log", ylim=(0.01, 3), xlabel="orbital period [yr]",
+    ax.text(1.0, 0.255, "Iorio+2026: ≲ 30% (metal-rich MW disc, Gaia DR3)", fontsize=7, color=INK2)
+    ax.set(xscale="log", yscale="log", xlim=(0.7, 35), ylim=(0.01, 3), xlabel="orbital period [yr]",
            ylabel="95% upper limit on the binary fraction")
     ax.legend(fontsize=7.5, loc="upper right")
     save(fig, "fig_upper_limit")
