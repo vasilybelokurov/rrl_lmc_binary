@@ -24,3 +24,10 @@ docs/writeup/build.log
 # Chunk part files of long runs (merged outputs are kept)
 results/**/part_*.parquet
 results/**/manifest.json
+docs/binary_fraction/*.aux
+docs/binary_fraction/*.log
+docs/binary_fraction/*.out
+docs/binary_fraction/*.toc
+docs/binary_fraction/*.fls
+docs/binary_fraction/*.fdb_latexmk
+docs/binary_fraction/build.log

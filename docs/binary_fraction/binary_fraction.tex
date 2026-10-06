@@ -23,6 +23,11 @@
 \newcommand{\Msun}{\ensuremath{M_\odot}}
 \newcommand{\kms}{\ensuremath{\mathrm{km\,s^{-1}}}}
 \newcommand{\OC}{\ensuremath{O{-}C}}
+%---- numbers filled from results/partB_v4/ (scripts/upper_limit_v4.py); "[pending]" until the injection run is complete
+\newcommand{\pend}{\textcolor{red}{[pending]}}
+\input{numbers.tex}
+\newcommand{\fig}[2]{\IfFileExists{../../plots/binary_fraction/#1.png}{\includegraphics[width=#2\textwidth]{#1}}{\fbox{\parbox[c][0.3\textwidth][c]{#2\textwidth}{\centering\pend\ figure \texttt{\detokenize{#1}}}}}}
+
 
 \title{\bf The binary fraction of LMC RR Lyrae\\ from 34 years of pulsation timing}
 \author{Project \texttt{rrl\_lmc\_binary} --- working note}
@@ -103,7 +108,7 @@ A = \frac{a_1\sin i}{c} = \frac{\sin i}{c}\,\frac{M_2}{M_1+M_2}\left[\frac{G(M_1
 e.g.\ $A=505$\,s for $M_1=0.65\,\Msun$, $M_2=0.6\,\Msun$, $P_{\rm orb}=1000$\,d and $1050$\,s at 3000\,d (edge-on).
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.92\textwidth]{fig_oc_examples}
+\fig{fig_oc_examples}{0.92}
 \caption{Season delays (\OC, a fitted parabola removed) for three stars. Top: a typical star; the delays are consistent with
 the errors. Middle: a star with large intrinsic period wander (12{,}000\,s, far above any orbit). Bottom: the candidate
 13854 with its Keplerian fit ($P=12.7$\,yr, $e=0.23$); MACHO $B$, $R$ and OGLE follow the same curve over 2.6 cycles.}
@@ -146,7 +151,7 @@ noise model at moderate $D$, but after the cuts that select orbit-like signals t
 expectation: \NCAND\ observed vs \EXPECTED\ expected. There is no excess of orbit-like signals.
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.72\textwidth]{fig_funnel}
+\fig{fig_funnel}{0.72}
 \caption{Number of stars passing the successive cuts: real (blue) and expected from intrinsic timing noise alone (orange; the
 simulated noise carries no amplitude variability, so the last step uses the real amplitude-stability pass rate of stars passing
 the other cuts).}
@@ -157,7 +162,7 @@ the other cuts).}
 1--3\,yr, set by the noise. The candidates lie at 300--3000\,s and 5--20\,yr, where the intrinsic wander is largest.
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.66\textwidth]{fig_amp_period}
+\fig{fig_amp_period}{0.66}
 \caption{Best-fit \OC\ semi-amplitude and period of every star (grey) and of the \NCAND\ candidates (blue), with the
 light-travel amplitude of an edge-on companion of $0.1$, $0.4$ and $1.5\,\Msun$. The vertical stripes at long periods are
 the period grid; values above the $1.5\,\Msun$ line and beyond $\sim$20\,yr are intrinsic wander or trends.}
@@ -180,7 +185,7 @@ Binaries are missed because their orbit is seen nearly face-on, because the host
 amplitude cut rejects it), or because the host's own timing noise distorts the signal.
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.66\textwidth]{fig_efficiency}
+\fig{fig_efficiency}{0.66}
 \caption{Probability that a binary is flagged as a candidate, from orbits injected into the real stars' timing data,
 in bins of orbital period and companion mass (averaged over inclination and eccentricity).}
 \label{fig:eff}
@@ -211,7 +216,7 @@ number of injections). $f_{\max}$: counting all candidates as binaries. $f_{\max
 \end{table}
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.66\textwidth]{fig_upper_limit}
+\fig{fig_upper_limit}{0.66}
 \caption{95\% upper limit on the binary fraction vs orbital period for three companion-mass ranges. Literature values are shown
 for orientation; they refer to different methods and populations (\cref{sec:literature}).}
 \label{fig:limit}
@@ -232,7 +237,7 @@ A failed prediction shows that the frozen best-fit orbit was wrong, not that the
 coherent, orbit-like signal under the adopted noise model.
 
 \begin{figure}[ht]\centering
-\includegraphics[width=0.95\textwidth]{fig_blind_test}
+\fig{fig_blind_test}{0.95}
 \caption{Blind test. Points to the dotted line: data used for the prediction (MACHO $B$, $R$; OGLE $I$). Grey band: frozen orbit
 prediction ($\pm2\sigma$). Orange: OGLE seasons 2017--2026. Left: 13854, confirmed. Right: 03269, failed.}
 \label{fig:blind}
