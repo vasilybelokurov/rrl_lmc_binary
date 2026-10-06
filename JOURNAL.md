@@ -868,3 +868,10 @@ Caveat: ε is measured for orbits with photometric noise only; intrinsic red tim
 M2 ≥ 0.4, whose amplitudes 500–2000 s exceed the typical red noise ~400 s). The noise-subtracted limit depends on the red-noise model (b ≈ k: no excess).
 
 - All-star survey finished: results/stage1/survey_all.parquet (16,929 stars). To be used for the candidate short list (amplitude stability, coherence).
+
+## 2026-10-06 — Follow-up short list (`scripts/shortlist_v4.py` → results/partC_v4/shortlist.csv)
+143 checked (v4 candidates + frozen stars with Keplerian fits): physical (A below the M2 = 2 ceiling, e < 0.94, χ²_ν < 2) 127; ≥ 2 cycles in 34 yr 75; amplitude
+steady (α χ²_ν < 2 and survey d2lnl < 13.8) 133; predicted later data 14 (blind frozen test 2) → **short list 12**: 15158 and 13854 (blind test passed),
+13083, 00604, 08275, 00723, 11047, 04633, 03700, 08101, 18547, 16301 (split test; not blind for stars selected with post-2016 data). Predicted RV semi-amplitudes
+K1 2.9–11.5 km/s; M2,min 0.16–0.88 Msun; P 5.4–13.6 yr. 16301: e = 0.75, K1 upper error to 29 km/s → orbit poorly constrained.
+50 stars pass the physical/cycle/amplitude checks but failed the prediction test (listed by the script).
