@@ -21,6 +21,8 @@ from astropy.time import Time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rrlbin.ltte import ltte_delay  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 C_KMS = 299792.458
 DAY = 86400.0
@@ -36,7 +38,7 @@ def hjdp(year):
 
 
 def main():
-    k = pd.read_csv("results/partC/kepler.csv")
+    k = pd.read_csv(f"{PARTC}/kepler.csv")
     k = k[k.err_msg.isna()] if "err_msg" in k else k
     v = pd.read_fwf("data/raw/ogle4_lmc_rrlyr/RRab.dat", colspecs=[(0, 20), (22, 28), (29, 35)], names=["ogle_id", "I", "V"], header=None)
     for col in ("I", "V"):
@@ -53,7 +55,7 @@ def main():
                          next_tau_max_yr=2027 + np.argmax(tau) / 2000 * r.P_kep / 365.25,
                          precision_needed_kms=r.K1_kep / 3))
     F = pd.DataFrame(rows).sort_values("dv_2027_2030", ascending=False)
-    F.to_csv("results/partC/followup.csv", index=False)
+    F.to_csv(f"{PARTC}/followup.csv", index=False)
     print(F.head(12).round(2).to_string(index=False))
     print(f"\ncandidates with predicted systemic-velocity change > 5 km/s over 2027-2030: {(F.dv_2027_2030 > 5).sum()} / {len(F)}; "
           f"median V {F.V.median():.2f}")

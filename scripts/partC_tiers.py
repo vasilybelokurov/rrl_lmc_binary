@@ -12,6 +12,9 @@ Usage
 """
 import numpy as np
 import pandas as pd
+import sys  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 
 def tier(r):
@@ -27,12 +30,12 @@ def tier(r):
 
 
 def main():
-    T = pd.read_csv("results/partC/partC_table.csv")
+    T = pd.read_csv(f"{PARTC}/partC_table.csv")
     if "baseline" not in T:
-        T = T.merge(pd.read_parquet("results/real/stats_v3.parquet", columns=["ogle_id", "baseline"]), on="ogle_id", how="left")
+        T = T.merge(pd.read_parquet(STATS, columns=["ogle_id", "baseline"]), on="ogle_id", how="left")
     T["flag_crowded"] = T.flag_crowded.fillna(False).astype(bool)
     T["tier"] = [tier(r) for r in T.itertuples()]
-    T.sort_values(["tier", "snr_tot"], ascending=[True, False]).to_csv("results/partC/partC_tiers.csv", index=False)
+    T.sort_values(["tier", "snr_tot"], ascending=[True, False]).to_csv(f"{PARTC}/partC_tiers.csv", index=False)
     print(T.tier.value_counts().sort_index().to_dict())
     cols = ["ogle_id", "bands", "V", "P_kep", "A_kep_s", "e_kep", "M2min_kep", "K1_kep", "D", "pred_score", "alpha_chi2nu",
             "coh_chi2nu", "chi2nu_kep", "dv_2027_2030"]

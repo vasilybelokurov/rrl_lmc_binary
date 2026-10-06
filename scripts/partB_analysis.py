@@ -20,8 +20,10 @@ from scipy.stats import chi2
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from plot_summary_stats import cut_flags  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
-OUT = Path("results/partB")
+OUT = Path(PARTB)
 
 
 def flags(d, amp):
@@ -33,11 +35,11 @@ def flags(d, amp):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    real = pd.read_parquet("results/real/stats_v3.parquet")
+    real = pd.read_parquet(STATS)
     real = real.join(flags(real, "amp_s"))
     res = {}
     comp_rows = []
-    for name, f_, has_m in [("MACHO", "results/inject/stats_v3_macho.parquet", True), ("OGLE-only", "results/inject/stats_v3_ogle.parquet", False)]:
+    for name, f_, has_m in [("MACHO", SIM_M, True), ("OGLE-only", SIM_O, False)]:
         s = pd.read_parquet(f_)
         s = s[s.kind != "error"].drop(columns=["t", "tau", "err", "band", "alpha", "alpha_err", "coh", "coh_err"], errors="ignore")
         s = s.join(flags(s, "amp_circ_s"))

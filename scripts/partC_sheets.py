@@ -30,6 +30,8 @@ from rrlbin.kepler_fit import fit_keplerian  # noqa: E402
 from rrlbin.ltte import ltte_delay  # noqa: E402
 from rrlbin.oc import align_bands, apply_common_mode, orbit_search, period_grid, robust_unwrap  # noqa: E402
 from rrlbin.timing import year_labels  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 DAY = 86400.0
 BC = {0: ("C0", "OGLE I"), 1: ("C1", "MACHO B"), 2: ("C2", "MACHO R")}
@@ -39,19 +41,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=200)
     a = ap.parse_args()
-    out = Path("plots/partC/sheets")
+    out = Path(f"{PLOTS_C}/sheets")
     out.mkdir(parents=True, exist_ok=True)
     for f in out.glob("*.png"):
         f.unlink()
-    cand = pd.read_csv("results/partC/candidates_v3_prov.csv")
-    kep = pd.read_csv("results/partC/kepler.csv").set_index("ogle_id")
-    crowd = pd.read_csv("results/partC/crowding.csv").set_index("ogle_id")
-    fol = pd.read_csv("results/partC/followup.csv").set_index("ogle_id")
-    st = pd.read_parquet("results/real/stats_v3.parquet", columns=["ogle_id", "jit1_s"]).set_index("ogle_id")
-    ser = load("results/real/series_v3")
+    cand = pd.read_csv(f"{PARTC}/candidates_{V}_prov.csv")
+    kep = pd.read_csv(f"{PARTC}/kepler.csv").set_index("ogle_id")
+    crowd = pd.read_csv(f"{PARTC}/crowding.csv").set_index("ogle_id")
+    fol = pd.read_csv(f"{PARTC}/followup.csv").set_index("ogle_id")
+    st = pd.read_parquet(STATS, columns=["ogle_id", "jit1_s"]).set_index("ogle_id")
+    ser = load(SERIES)
     ser = ser[ser.ogle_id.isin(set(cand.ogle_id))].set_index("ogle_id")
-    cm = {tuple(map(int, k.split(","))): v / DAY for k, v in json.loads(Path("results/calib/common_mode_v3.json").read_text()).items()}
-    lag = json.loads(Path("results/calib/band_lag_v3.json").read_text())
+    cm = {tuple(map(int, k.split(","))): v / DAY for k, v in json.loads(Path(CM).read_text()).items()}
+    lag = json.loads(Path(LAG).read_text())
     rows = []
     for rank, c in enumerate(cand.head(a.n).itertuples(), 1):
         oid = c.ogle_id
@@ -131,8 +133,8 @@ def main():
         crowd.reset_index()[["ogle_id", "flag_crowded", "n_gaia_within", "pct_sigma_all", "ruwe", "dGI"]], on="ogle_id", how="left").merge(
         fol.reset_index()[["ogle_id", "V", "dv_2027_2030"]], on="ogle_id", how="left").merge(pd.DataFrame(rows), on="ogle_id", how="left")
     T["e_at_bound"] = T.e_kep >= 0.9
-    T.to_csv("results/partC/partC_table.csv", index=False)
-    print(f"sheets: {len(rows)} -> {out}; table -> results/partC/partC_table.csv; e at bound: {int(T.e_at_bound.sum())}; "
+    T.to_csv(f"{PARTC}/partC_table.csv", index=False)
+    print(f"sheets: {len(rows)} -> {out}; table -> {PARTC}/partC_table.csv; e at bound: {int(T.e_at_bound.sum())}; "
           f"crowding flag: {int(T.flag_crowded.fillna(False).sum())}")
 
 

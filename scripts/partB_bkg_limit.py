@@ -18,15 +18,17 @@ from scipy.stats import poisson
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from plot_summary_stats import cut_flags  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--sys", type=float, default=0.25)
 a = ap.parse_args()
 others = ["c1_D", "c3_snr", "c4_cycles", "c5_ceiling"]
-r = pd.read_parquet("results/real/stats_v3.parquet")
+r = pd.read_parquet(STATS)
 r = r[r.has_M]
 r = r.join(cut_flags(r, "amp_s", r.baseline))
-s = pd.read_parquet("results/inject/stats_v3_macho.parquet")
+s = pd.read_parquet(SIM_M)
 s = s[s.kind.isin(["empirical", "ltte"])].copy()
 s = s.join(cut_flags(s, "amp_circ_s", s.baseline))
 e = s[s.kind == "empirical"]

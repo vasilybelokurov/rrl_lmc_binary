@@ -12,6 +12,7 @@ Usage
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -23,8 +24,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from plot_summary_stats import cut_flags  # noqa: E402
 from rrlbin.ltte import mass_function  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
-OUT = Path("results/partC")
+OUT = Path(PARTC)
 
 
 def m2_min(f):
@@ -38,7 +41,7 @@ def select(stats: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    v3 = select(pd.read_parquet("results/real/stats_v3.parquet"))
+    v3 = select(pd.read_parquet(STATS))
     v3 = v3[v3.err_msg.isna()] if "err_msg" in v3 else v3
     c = v3[v3["all"]].copy()
     c["fM"] = mass_function(c.P_best, c.amp_s)
@@ -49,9 +52,9 @@ def main():
     cols = ["ogle_id", "has_M", "bands", "n_season", "D", "D_2h", "dD_harm2", "P_best", "amp_s", "amp_2h_s", "err_med_s", "jit0_s",
             "alpha_chi2nu", "coh_chi2nu", "pred_score", "alias_dD", "fM", "M2min", "K1_kms", "snr_tot",
             "s_gp_s", "A_gp_s", "ell_gp_d"]
-    c[[k for k in cols if k in c]].to_csv(OUT / "candidates_v3_prov.csv", index=False)
+    c[[k for k in cols if k in c]].to_csv(OUT / f"candidates_{V}_prov.csv", index=False)
 
-    v2 = pd.read_csv("results/candidates/candidates_v2_corrgrid.csv")
+    v2 = pd.read_csv(PREV_CANDS)
     v3all = v3.set_index("ogle_id")
     rows = []
     for oid in sorted(set(v2.ogle_id) | set(c.ogle_id)):
@@ -65,7 +68,12 @@ def main():
                      failed=",".join(k for k in ["c1_D", "c2_alpha", "c3_snr", "c4_cycles", "c5_ceiling"] if not y[k]))
         rows.append(r)
     cmp_ = pd.DataFrame(rows)
-    cmp_.to_csv(OUT / "v2_vs_v3.csv", index=False)
+    # internal labels v2/v3 = previous/current pipeline version (v3: v2 -> v3; v4: v3 -> v4)
+    relab = lambda x: re.sub(r"v[23]", lambda m: {"v2": PREV, "v3": V}[m.group()], x)
+    cmp_.rename(columns=relab).to_csv(OUT / relab("v2_vs_v3.csv"), index=False)
+    import builtins
+    _print = builtins.print
+    print = lambda *a, **k: _print(*(relab(x) if isinstance(x, str) else x for x in a), **k)  # noqa: E731,A001
 
     print(f"v3 provisional candidates: {len(c)} (with MACHO {c.has_M.sum()}); v2: {len(v2)}")
     kept = cmp_[cmp_.in_v2 & cmp_.in_v3]

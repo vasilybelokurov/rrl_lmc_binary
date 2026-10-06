@@ -18,9 +18,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
+import sys  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 COMP = Path("../rrl_lmc_rotation/data")
-OUT = Path("results/partC")
+OUT = Path(PARTC)
 COLS = ["n_gaia_within", "sigma_all", "ruwe", "ipd_frac_multi_peak", "dGI", "amp_I"]
 
 
@@ -31,14 +34,14 @@ def load():
     g = g.merge(dens, on="ogle_id", how="left")
     gi = g.phot_g_mean_mag - g.I
     g["dGI"] = gi - np.nanmedian(gi)
-    st = pd.read_parquet("results/real/stats_v3.parquet", columns=["ogle_id", "has_M"])
+    st = pd.read_parquet(STATS, columns=["ogle_id", "has_M"])
     return st.merge(g, on="ogle_id", how="left")
 
 
 def main():
     rng = np.random.default_rng(0)
     p = load()
-    c = pd.read_csv(OUT / "candidates_v3_prov.csv")[["ogle_id"]]
+    c = pd.read_csv(OUT / f"candidates_{V}_prov.csv")[["ogle_id"]]
     p["cand"] = p.ogle_id.isin(set(c.ogle_id))
     rows = []
     for grp, g in p.groupby("has_M"):
@@ -75,8 +78,8 @@ def main():
         a.set(xlabel=col, ylabel="density")
     ax[0, 0].legend(fontsize=7)
     fig.tight_layout()
-    Path("plots/partC").mkdir(parents=True, exist_ok=True)
-    fig.savefig("plots/partC/crowding.png", dpi=110)
+    Path(PLOTS_C).mkdir(parents=True, exist_ok=True)
+    fig.savefig(f"{PLOTS_C}/crowding.png", dpi=110)
 
 
 if __name__ == "__main__":

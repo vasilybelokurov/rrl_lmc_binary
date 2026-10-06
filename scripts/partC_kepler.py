@@ -28,6 +28,8 @@ from level2 import load, priors_for, to_series  # noqa: E402
 from rrlbin.kepler_fit import fit_keplerian  # noqa: E402
 from rrlbin.oc import align_bands, apply_common_mode, robust_unwrap  # noqa: E402
 from rrlbin.timing import year_labels  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 DAY = 86400.0
 G = {}
@@ -71,19 +73,19 @@ def _init(cm, lag):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=2)
-    ap.add_argument("--cands", default="results/partC/candidates_v3_prov.csv")
+    ap.add_argument("--cands", default=f"{PARTC}/candidates_{V}_prov.csv")
     a = ap.parse_args()
     c = pd.read_csv(a.cands)
-    st = pd.read_parquet("results/real/stats_v3.parquet", columns=["ogle_id", "jit1_s"]).set_index("ogle_id")
-    ser = load("results/real/series_v3")
+    st = pd.read_parquet(STATS, columns=["ogle_id", "jit1_s"]).set_index("ogle_id")
+    ser = load(SERIES)
     ser = ser[ser.ogle_id.isin(set(c.ogle_id))].set_index("ogle_id")
-    cm = {tuple(map(int, k.split(","))): v / DAY for k, v in json.loads(Path("results/calib/common_mode_v3.json").read_text()).items()}
-    lag = json.loads(Path("results/calib/band_lag_v3.json").read_text())
+    cm = {tuple(map(int, k.split(","))): v / DAY for k, v in json.loads(Path(CM).read_text()).items()}
+    lag = json.loads(Path(LAG).read_text())
     jobs = [(dict(ser.loc[o].to_dict(), ogle_id=o), float(P0), float(st.loc[o, "jit1_s"])) for o, P0 in zip(c.ogle_id, c.P_best)]
     with Pool(a.workers, initializer=_init, initargs=(cm, lag)) as pool:
         rows = pool.map(one, jobs, chunksize=1)
     R = pd.DataFrame(rows)
-    R.to_csv("results/partC/kepler.csv", index=False)
+    R.to_csv(f"{PARTC}/kepler.csv", index=False)
     ok = R[R.err_msg.isna()] if "err_msg" in R else R
     print(f"fitted {len(ok)} / {len(R)}")
     q = lambda x: np.nanpercentile(x, [10, 50, 90]).round(2)

@@ -23,6 +23,8 @@ import pandas as pd  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from plot_summary_stats import cut_flags  # noqa: E402
+sys.path.insert(0, __import__('os').path.dirname(__file__))
+from version import CM, LAG, PARTB, PARTC, PLOTS_C, PREV, PREV_CANDS, SERIES, SFX, SIM_M, SIM_O, STATS, V  # noqa: E402,F401
 
 OTHERS = ["c1_D", "c3_snr", "c4_cycles", "c5_ceiling"]          # all cuts except the amplitude veto c2_alpha
 CLASSES = [("null", "k", "white noise"), ("rwalk", "C4", "random walk"), ("jump", "C8", "period jump"),
@@ -31,10 +33,10 @@ CLASSES = [("null", "k", "white noise"), ("rwalk", "C4", "random walk"), ("jump"
 
 
 def main():
-    r = pd.read_parquet("results/real/stats_v3.parquet")
+    r = pd.read_parquet(STATS)
     r = r[r.ok & r.has_M].copy()
     r = r.join(cut_flags(r, "amp_s", r.baseline))
-    s = pd.read_parquet("results/inject/stats_v3_macho.parquet",
+    s = pd.read_parquet(SIM_M,
                         columns=["kind", "D", "amp_circ_s", "err_med_s", "P_best", "baseline", "alpha_chi2nu", "coh_chi2nu",
                                  "pred_score", "P_orb", "M2"])
     s = s[s.kind != "error"].copy()
@@ -90,7 +92,7 @@ def main():
     ax[2].set(ylabel="number of MACHO stars", title="(c) candidates: observed vs noise-only expectation")
     ax[2].legend(fontsize=8)
     # (d) completeness
-    c = pd.read_csv("results/partB/completeness.csv")
+    c = pd.read_csv(f"{PARTB}/completeness.csv")
     c = c[c["sample"] == "MACHO"]
     Ps, Ms = list(dict.fromkeys(c.P)), list(dict.fromkeys(c.M2))
     Z = np.array([[c[(c.P == p) & (c.M2 == m)].comp_cuts.iloc[0] for p in Ps] for m in Ms])
@@ -104,8 +106,8 @@ def main():
               title="(d) completeness of the cuts (MACHO cadences, isotropic)")
     plt.colorbar(im, ax=ax[3], label="fraction recovered")
     fig.tight_layout()
-    fig.savefig("plots/partB_summary.png", dpi=110)
-    print("figure: plots/partB_summary.png")
+    fig.savefig(f"plots/partB_summary{SFX}.png", dpi=110)
+    print(f"figure: plots/partB_summary{SFX}.png")
 
 
 if __name__ == "__main__":
