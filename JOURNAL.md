@@ -617,4 +617,5 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
 - They are full OGLE-IV light curves, HJD′ 5260 → 11187 (2010.2 → 2026.0; p10 of the last epoch 10943): public epochs recovered 99.8% (median; p10 99.3%),
   magnitudes identical on common epochs (median Δm = 0; per-star sd p50/p90 = 0/5 mmag) → a strict extension of the public data, same reduction.
 - Post-2016 (HJD′ > 7600) epochs per star p10/50/90 = 129/317/7241 (p90 = the 2022–24 high-cadence fields). Examples: 10449 706 → 5801 epochs; 03269 764 → 5869; 13854 701 → 7983.
+- Coverage: 27/28 frozen Tier-1/2 candidates and 73/75 v3 candidates are in the new data; missing 15201 (frozen) and 04400.
 - Next: wire the 2026 files into `load_star` (OGLE-IV segment taken from the new file when present), then test the frozen predictions (tag `predictions-2026-10-01`) before any refit.
