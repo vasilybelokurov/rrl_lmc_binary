@@ -891,3 +891,7 @@ K1 2.9–11.5 km/s; M2,min 0.16–0.88 Msun; P 5.4–13.6 yr. 16301: e = 0.75, K
     binary fraction ≥ 7% (nearby field RRL; PMa sensitivity, not LTTE).
   - Iorio et al. 2026, A&A 712, A223 (arXiv:2603.20429): no genuine RRL binary in Gaia DR3 astrometric catalogues; for metal-rich ([Fe/H] > −0.6) RRL with
     P ~ 900–2000 d the fiducial models give an upper limit ≈ 0.3; ≈ 0.7–0.8 not excluded for the most metal-rich subsample / other assumptions.
+
+## 2026-10-07 — Binary-fraction write-up in progress (docs/binary_fraction/binary_fraction.tex; plots/binary_fraction/)
+- Efficiency now measured by injecting Keplerian orbits into the REAL stars season delays (`scripts/inject_real.py`; 2 per star, 13,224; validation run on simulated noise-free stars follows). `upper_limit_v4.py` rewritten to use it (no separate amplitude correction; binomial uncertainty of eps; all numbers produced by the script).
+- Figures: O-C examples, D survival (real vs noise sims), funnel (93 vs 112 expected), amplitude-period, blind test; efficiency and limit figures after the run.
