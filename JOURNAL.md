@@ -734,3 +734,23 @@ fields re-reduced after Soszyński+2016 — consistent with the re-reduction fou
   08101 (+5.1, p 0.01), 13854 (+4.8, p 0.02), 19233 (+4.7), 18547 (+3.9, p 0.01, e 0.67), 16301 (+3.4, e 0.95 → unreliable). 11 of 14 have MACHO.
   NOT yet interpretable: for the 96 new v4 candidates the selection used the post-2016 data, so the pass rate must be compared with the same test on
   simulated nuisance stars passing the same cuts (B1–B4 running; then `split_test.py` on stats_v4_macho/ogle).
+
+## 2026-10-06 — Search design v5 (hypothesis testing with explicit alternatives): draft + Codex review (docs/search_design.md; docs/reviews/2026-10-06_codex_search_design.md, effort xhigh)
+User: replace the ad hoc chain by proper hypothesis testing with explicit alternatives; discuss with Codex, assess, don't take it on its word.
+Draft: H_LTTE (Keplerian + red noise) vs alternatives RN (SE GP), RN2 (Matérn), J (period breaks), QP (quasi-periodic GP), BL (phase + amplitude/shape
+modulation, joint with α_j, c_j); per-alternative parametric bootstrap, intersection-union (star p = max_k p_k), BH FDR, Storey π0, injection efficiency.
+| Codex point | my verdict | importance / action |
+|---|---|---|
+| QP with unbounded coherence ≡ circular LTTE: not identifiable from timing; draft contradicts itself (coherence listed as discriminant) | **agree** (my own prior concern) | decisive: the timing-only claim is "coherent, achromatic, shape-invariant periodic delay consistent with LTTE"; QP must have a bounded coherence time, and the strictly periodic phase-only case is reported as a residual degeneracy (RVs/Gaia decide). Run the identifiability experiment FIRST |
+| missing: combined mechanisms (red noise + jumps + phase-only modulation); systematics null (common-mode / MACHO offset uncertainty, extraction failures) | agree | alternatives must be combinable; systematics as nuisance parameters in every model |
+| injection range to 20,000 d = 0.62 cycles in 34 yr | **verified** (34 × 365.25 / 20000 = 0.62) | restrict claims to P ≤ baseline/2 (≥ 2 cycles); longer = trend-degenerate |
+| H_J ambiguous; simulator = continuous O−C slope change (ΔP) | **verified** (simulate.delay_jump) | define J as ΔP breaks (continuous O−C), 1–2 breaks, free epochs |
+| IUT (max p) is the right construction for a union null, but plug-in bootstrap p from fitted hyperparameters is not valid in general (~22 seasons, weak/boundary hyperparameters) | agree in principle | moderate: demonstrate calibration over the hyperparameter range by simulation instead of a full worst-case envelope |
+| H_BL bootstrap must simulate delays + α + coherence jointly; only marginal errors exist | **verified** (timing.py: separate alpha_err, coh_err) | needs joint season covariance (cheap to add in _season_shift/_season_coherence) |
+| empirical Bayes calibrates average, not per-star conditional, behaviour; noise population absorbs orbits | agree | cross-fit (exclude/split candidates) when learning the noise population |
+| BH needs PRDS; shared yearly systematics | partly: common-mode residual ~ few s ≪ errors | low; BY as a sensitivity number |
+| **p-value resolution: BH at q = 0.05 over 17,490 tests needs p ≈ 2.9e-6; 10³–10⁴ bootstrap draws cannot reach it; cost 5–150 M datasets** | **verified** (0.05/17490 = 2.86e-6) | decisive for feasibility → do NOT aim at per-star FDR over all stars by brute force; per-star evidence used to RANK for follow-up; population via mixture |
+| Storey π0 ≠ binary count (misspecified noise also non-null) | agree | use π0 only as a diagnostic |
+| f_bin from a selection-aware likelihood: E[pass] = Σ_i [f ε_i + (1−f) α_i], ε_i, α_i per star (cadence, bands, errors) from end-to-end sims | agree | essential; supersedes the averaged-ε Part B estimate |
+| Bayesian per-star comparison not clearly better (priors decide where likelihoods overlap); hybrid: calibrated per-star evidence + hierarchical population model | agree | adopt the hybrid |
+| validations: p calibration under each null; identifiability experiment; end-to-end through light curves + selection; f_bin recovery at f = 0 and low f with varied nuisance mixes | agree | the identifiability experiment and the f = 0 end-to-end mock are the two gating tests |
