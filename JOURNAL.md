@@ -601,3 +601,20 @@ Part B (11:26): MACHO sims 26,982 rows, OGLE-only 14,400; 0 failures. **Bug foun
   (caveat stated: the H1 kriging covariance is conditional on the best-fit orbit → add the bootstrap envelope). New §9 summary and next steps.
 - References added and checked (arXiv API / Crossref): Michalska & Pigulski 2005 (10.1051/0004-6361:20042343), Mróz+2024 ApJL 976, L19 (10.3847/2041-8213/ad8e68),
   the four binary-channel papers with DOIs. Old v2 §6 "Status" removed (superseded by §6 Part B).
+
+---
+
+## 2026-10-06 — Data reorganisation; follow-up OGLE-IV photometry received
+### Layout (user request: heavy OGLE data out of Dropbox)
+- `data/raw/ogle3_lmc_rrlyr`, `data/raw/ogle4_lmc_rrlyr` moved to `~/data/ogle/` (same APFS volume → rename); absolute symlinks left in `data/raw/`,
+  so all code paths are unchanged. File counts identical before/after (49,355 / 79,821). MACHO (303 MB) stays in `data/raw/macho/`.
+- New photometry from the OGLE team (I. Soszyński, `phot.tar`, 2.9 GB, files dated 2026-10-06) → `~/data/ogle/ogle4_lmc_rrlyr_2026/`
+  (`phot.tar` + `phot/I`, `phot/V`; 5.6 GB extracted), symlinked as `data/raw/ogle4_lmc_rrlyr_2026`. Kept separate from the public release.
+- Checks: `load_star` through the symlinks works; 40 tests pass.
+
+### First look at the new files (300 random stars)
+- Same format as OCVS (HJD′, I, σ). I: 38,476 stars, V: 37,818. All are in the public OGLE-IV set; **2,733 public stars are absent** (to identify — outer-field additions?).
+- They are full OGLE-IV light curves, HJD′ 5260 → 11187 (2010.2 → 2026.0; p10 of the last epoch 10943): public epochs recovered 99.8% (median; p10 99.3%),
+  magnitudes identical on common epochs (median Δm = 0; per-star sd p50/p90 = 0/5 mmag) → a strict extension of the public data, same reduction.
+- Post-2016 (HJD′ > 7600) epochs per star p10/50/90 = 129/317/7241 (p90 = the 2022–24 high-cadence fields). Examples: 10449 706 → 5801 epochs; 03269 764 → 5869; 13854 701 → 7983.
+- Next: wire the 2026 files into `load_star` (OGLE-IV segment taken from the new file when present), then test the frozen predictions (tag `predictions-2026-10-01`) before any refit.
