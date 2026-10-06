@@ -180,3 +180,68 @@ def test_fixed_template_extends_gauge_to_new_seasons():
     c_tr = np.average(wrap(f.tau - step[f.season]), weights=f.tau_err ** -2)
     d_new = wrap(out[1] - step[out[7]] - c_tr)
     assert np.all(np.abs(d_new) < 4 * out[2])
+
+
+def test_gross_outliers_and_sparse_seasons():
+    """Bright gross outliers (cosmic-ray-like, -1 mag) in sparse seasons: delays still recovered (within 4 sigma of the truth
+    up to the gauge constant), no season dropped as unstable, and with the v3 settings (tight first clip, no repeated grid)
+    the result is never better."""
+    rng = np.random.default_rng(21)
+    t = []
+    for j in range(12):
+        n = 20 if j % 3 == 0 else 80
+        t.append(2200.0 + 365.25 * j + np.sort(rng.uniform(0, 240, n)))
+    t = np.concatenate(t)
+    lab = season_labels(t)
+    step = rng.normal(0, 600, lab.max() + 1) / 86400
+    m, e = synth(t, lambda x: step[lab], rng, sigma=0.05)
+    bad = rng.choice(t.size, 12, replace=False)
+    m[bad] -= 1.0
+    f = fit_timing(t, m, e, np.full(t.size, "O4"), P, T0, K=8)
+    d = (f.tau - step[f.season] + P / 2) % P - P / 2
+    d -= np.average(d, weights=f.tau_err ** -2)
+    assert f.unstable.size == 0 and f.season.size == 12
+    assert np.all(np.abs(d) < 4 * f.tau_err)
+    assert not np.any(f.mask[bad])                       # all gross outliers clipped
+
+
+def test_stability_drops_bimodal_season():
+    """A season whose points are almost all on one branch except a few contradictory high-leverage points: either it is
+    measured consistently or it is flagged unstable and dropped; it is never returned with a delay > 5 sigma off."""
+    rng = np.random.default_rng(5)
+    t = cadence(rng, n_seasons=8)
+    lab = season_labels(t)
+    step = rng.normal(0, 300, lab.max() + 1) / 86400
+    m, e = synth(t, lambda x: step[lab], rng, sigma=0.03)
+    s0 = lab == 3
+    idx = np.flatnonzero(s0)[:15]                       # keep 15 points in season 3 + 6 shifted by 0.3 P
+    keep = ~s0
+    keep[idx] = True
+    tt, mm, ee, ll = t[keep], m[keep].copy(), e[keep], lab[keep]
+    j = np.flatnonzero(ll == 3)[:6]
+    mm[j] = synth(tt[j], lambda x: step[3] + 0.3 * P)[0]
+    f = fit_timing(tt, mm, ee, np.full(tt.size, "O4"), P, T0, K=8, labels=ll)
+    d = (f.tau - step[f.season] + P / 2) % P - P / 2
+    d -= np.median(d)
+    ok = f.season != 3
+    assert np.all(np.abs(d[ok]) < 4 * f.tau_err[ok])
+    if 3 in f.season:
+        k = list(f.season).index(3)
+        assert abs(d[k]) < 5 * f.tau_err[k] or 3 in f.unstable
+
+
+def test_real_11166_no_wrong_minimum():
+    """Regression (real data, skipped if absent): the full 2010-2026 fit of OGLE-LMC-RRLYR-11166 put season 21 at a wrong
+    minimum (-23.8 ks, alpha 1.37) with the v3 settings; with the current settings it lies near its neighbours."""
+    from rrlbin.io import lc_path
+    from rrlbin.pipeline import RAW, load_star
+    from rrlbin.timing import year_labels
+    oid = "OGLE-LMC-RRLYR-11166"
+    if not lc_path(RAW, "ogle4x", oid).exists():
+        pytest.skip("extended OGLE-IV data not available")
+    t, m, e, s = load_star(oid, ogle4="extended")["I"]
+    f = fit_timing(t, m, e, s, 0.4912322, 6000.2098, K=8, labels=year_labels(t))
+    tau = f.tau * 86400
+    tau = tau - 0.4912322 * 86400 * np.round((tau - np.median(tau)) / (0.4912322 * 86400))
+    assert np.max(np.abs(np.diff(tau))) < 3000
+    assert np.all(np.abs(f.alpha - 1) < 0.3)

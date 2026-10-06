@@ -5,7 +5,7 @@ arrays t, tau, err, band, alpha, alpha_err, coh, coh_err (see rrlbin.oc). No O-C
 
 Usage
 -----
-    python scripts/level1_real.py --out results/real/series_v3 [--limit 150 --require-o2] [--workers 6]
+    python scripts/level1_real.py --out results/real/series_v3 [--limit 150 --require-o2] [--workers 6] [--ogle4 extended]
 """
 from __future__ import annotations
 
@@ -36,9 +36,9 @@ def sample_table():
 
 
 def one(row):
-    oid, mid, P, T0, ra, dec = row
+    oid, mid, P, T0, ra, dec, ogle4 = row
     try:
-        s, fits, _ = star_series(oid, P, T0, mid, ra, dec)
+        s, fits, _ = star_series(oid, P, T0, mid, ra, dec, ogle4=ogle4)
         # usable only with an OGLE I fit (the same requirement as in the simulations)
         out = dict(ogle_id=oid, ok="I" in fits, P=P, T0=T0, chi2nu_I=s["chi2nu_I"], bands="".join(sorted(fits)),
                    failures="; ".join(f"{k}: {v}" for k, v in s["failures"].items()))
@@ -54,16 +54,18 @@ def main():
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--require-o2", action="store_true")
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--ogle4", choices=["public", "extended"], default="public",
+                    help="OGLE-IV light curves: public OCVS (to 2016) or the extended 2010-2026 files")
     a = ap.parse_args()
     s = sample_table()
     if a.require_o2:
         s = s[(s.t3_first < 2000) & s.macho_id.fillna("").str.count(r"\.").eq(2)]
     if a.limit:
         s = s.sample(a.limit, random_state=0).sort_values("ogle_id")
-    jobs = list(zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec))
+    jobs = [j + (a.ogle4,) for j in zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec)]
     print(f"stars: {len(jobs)}", flush=True)
     chunked.run_chunked(one, jobs, a.out, workers=a.workers, chunk=250,
-                        manifest=dict(script="level1_real", ids=[j[0] for j in jobs], require_o2=a.require_o2))
+                        manifest=dict(script="level1_real", ids=[j[0] for j in jobs], require_o2=a.require_o2, ogle4=a.ogle4))
     d = chunked.merge_parts(a.out)
     print(f"ok {d.ok.sum()} / {len(d)}; bands: {d[d.ok].bands.value_counts().to_dict()}")
     if "failures" in d:

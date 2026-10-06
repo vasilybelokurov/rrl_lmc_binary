@@ -20,7 +20,9 @@ def load_star(ogle_id: str, macho_id=None, ra=None, dec=None, raw=RAW, ogle4: st
     """Light curves: {'I': (t, m, e, seg), 'MB': (t, m, e, seg), 'MR': (t, m, e, seg)} (MACHO bands only if available).
 
     ogle4 : 'public' (OCVS release, to 2016.3) or 'extended' (the 2010-2026 OGLE-team files where present, else public).
-    All OGLE-IV epochs share the segment 'O4' (same reduction; the extended files reproduce the public epochs exactly)."""
+    All OGLE-IV epochs share the segment 'O4'. The extended files contain the public epochs (plus ~0.4% more within 2010-2016)
+    and later ones; the central fields (LMC502/503/509/510/511/516) are re-reduced (few-mmag differences, Soszynski pers. comm.),
+    and the raw database extraction can contain outliers (handled by the clipping in fit_timing)."""
     out = {}
     p3, p4 = lc_path(raw, "ogle3", ogle_id), lc_path(raw, "ogle4", ogle_id)
     if ogle4 == "extended" and lc_path(raw, "ogle4x", ogle_id).exists():
@@ -82,9 +84,9 @@ def series_from_fits(fits: dict, P: float) -> dict:
     return out
 
 
-def star_series(ogle_id, P, T0, macho_id=None, ra=None, dec=None, raw=RAW):
+def star_series(ogle_id, P, T0, macho_id=None, ra=None, dec=None, raw=RAW, ogle4="public"):
     """Real star: (series, fits, light curves)."""
-    lcs = load_star(ogle_id, macho_id, ra, dec, raw)
+    lcs = load_star(ogle_id, macho_id, ra, dec, raw, ogle4=ogle4)
     failures = {}
     fits = fit_star(lcs, P, T0, failures=failures)
     s = series_from_fits(fits, P)

@@ -677,3 +677,27 @@ fields re-reduced after Soszyński+2016 — consistent with the re-reduction fou
 | H1 too narrow; state the 20 as "frozen best-fit orbit forecasts strongly inconsistent under the stated H1 noise model", not "not binaries" | agree (my own caveat) | wording |
 | "2 confirmed-like" ≠ detections: conditional on the SE-GP null (fixed ℓ grid); quasi-periodic red noise not covered; selection not in the calibration | agree | end-to-end calibration: sims through timing extraction, selection and the same confirmation rule; add quasi-periodic nulls |
 | refit plan: keep the frozen test separate; retain clipped + unclipped solutions; common mode for new years from control stars with field/reduction terms and leave-one-out; joint fits vs flexible red-noise alternatives, aliases, parameter uncertainty, posterior predictive checks | agree | adopt in the plan |
+
+## 2026-10-06 — Fixes after the review (user: "be pragmatic"; apply the necessary fixes, then the full refit) — timing fit v4
+- `timing.fit_timing` (v4 defaults; tests: 46 pass):
+  - first iteration clips only gross outliers (`gross` = 8σ): the first template is blurred by the unaligned delays, so a 4σ clip there removes
+    rising-branch points; clipped points re-enter at every iteration (as before);
+  - coarse grid search in the first 3 iterations (`grid_every`; v3: first only; vectorized grid);
+  - **season stability check** (`_season_minima`): at the final template (8σ-clipped season) the distinct χ² minima (dm, α profiled) are refined;
+    a season is DROPPED (`fit.unstable`) if the fitted delay is > 3σ from the deepest minimum, or if the two deepest minima are > 3σ apart with
+    Δχ²/χ²_ν < 9 (ambiguous);
+  - limit-cycle convergence (`tol_cycle` 1e-5 d after 10 iterations): on the 2010–2026 curves the clipping set flips at the threshold and delays
+    oscillate by ~0.6 s → the fit had run to n_outer = 50 (found by profiling).
+  - Cost: 0.78–1.0 s per star (I band, 2010–2026) vs 0.66 s for v3. On 42 random stars: 14 of 983 seasons unstable (7 in one noisy star, 01944);
+    the remaining v4 ≠ v3 seasons (04504, 06217, 22191: 2–3 ks) are single-season jumps of v3 — v4 is continuous with the neighbours.
+  - Tests: gross bright outliers in sparse seasons (all clipped, delays within 4σ, none dropped); a bimodal season is measured or dropped, never
+    > 5σ off; regression on real 11166 (v3 settings fail: |α − 1| = 0.37; v4 passes).
+- `test_frozen_predictions.py`: v3 fit settings pinned (`V3_FIT`; reproduces the frozen series, frame residual 4e-5 s); verifies the frozen table's
+  sha256 and that all frozen inputs equal tag predictions-2026-10-01 (refuses otherwise). Result unchanged (2 C / 20 R / 5 I).
+- `--ogle4 extended` in level1_real.py, level1_sims.py, compare_noise_real_sim.py; `load_star` docstring corrected (re-reduction, outliers).
+- Smoke (60 OGLE-II+MACHO stars, extended): Level 1 29 s (6 workers; 60/60 IMBMR), Level 2 19 s, 0 failures. With the 34-yr baseline the statistics
+  grow as expected (median D 13 → 23, A_gp 177 → 403 s, P_best 1.4 → 6.0 kd) → sims must be recalibrated on the same baseline. GP ℓ grid kept
+  (ℓ = 6000 d chosen by 17% vs 10% in v3; no pile-up).
+- Known residual mismatch: simulated light curves have Gaussian noise only; the real 2016–2026 data carry ~0.1% raw outliers (clipped).
+- `scripts/run_refit_v4.sh`: A1 Level 1 real → A2 common mode (v3 candidates excluded; all new years) → A3 band lag → A4 Level 2 real →
+  A5 noise checkpoint (logged, run continues) → B1–B4 sims (MACHO 1500 × 18, OGLE-only 800 × 18) on the 1992–2026 epochs. Launched.

@@ -46,12 +46,14 @@ def main():
     ap.add_argument("--sims", default="results/validation_v3/series_ltte")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--kind", default="null", help="simulated class to compare with the real stars")
+    ap.add_argument("--ogle4", choices=["public", "extended"], default="public", help="OGLE-IV light curves of the real stars")
+    ap.add_argument("--out", default="results/validation_v3/noise_real_vs_sim.csv")
     a = ap.parse_args()
     sims = chunked.merge_parts(a.sims)
     null = sims[sims.kind == a.kind]
     s = sample_table()
     s = s[s.ogle_id.isin(set(null.ogle_id))]
-    jobs = list(zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec))
+    jobs = [j + (a.ogle4,) for j in zip(s.ogle_id, s.macho_id, s.P.astype(float), s.T0.astype(float), s.ra, s.dec)]
     with Pool(a.workers) as p:
         real = pd.DataFrame(p.map(one, jobs, chunksize=4))
     real = real[real.ok].set_index("ogle_id")
@@ -73,7 +75,8 @@ def main():
                              n_real=int(rb.sum()), n_sim=np.median([(np.asarray(x["band"]) == b).sum() for x in sb]),
                              chi2_real=chi2_h0(r, b), chi2_sim=np.median([chi2_h0(x, b) for x in sb])))
     R = pd.DataFrame(rows)
-    R.to_csv("results/validation_v3/noise_real_vs_sim.csv", index=False)
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    R.to_csv(a.out, index=False)
     for b, gb in R.groupby("band"):
         ratio = gb.err_sim / gb.err_real
         print(f"band {b}: {len(gb)} stars; median season error real {gb.err_real.median():.0f} s vs null-sim {gb.err_sim.median():.0f} s; "

@@ -93,6 +93,7 @@ class TimingFit:
     chi2nu: float
     coh: np.ndarray = None      # per season: delay of the fundamental minus delay of the higher harmonics [d]
     coh_err: np.ndarray = None
+    unstable: np.ndarray = None  # labels of seasons dropped by the stability check
 
 
 def _template_fit(t, m, w, seg_idx, nseg, tau_ep, P, T0, K):
@@ -113,7 +114,13 @@ def _season_shift(t, m, w, zp_ep, coef, P, T0, tau0, n_iter=10, grid=True):
     Returns dict: tau, dm, alpha, var_tau, var_alpha, chi2, t_eff (Fisher-weighted epoch of the delay)."""
     if grid:  # coarse global search over one full cycle, to avoid wrong local minima
         taus = tau0 + P * np.linspace(-0.5, 0.5, 101)[:-1]
-        chi = [np.sum(w * (m - zp_ep - fourier_eval(coef, (t - x - T0) / P)) ** 2) for x in taus]
+        k = np.arange(1, coef.size // 2 + 1)
+        r0 = m - zp_ep
+        chi = np.empty(taus.size)
+        for i0 in range(0, taus.size, 25):          # vectorized over blocks of grid points (memory ~ 25 x n x K)
+            arg = TWO_PI * ((t[None, :] - taus[i0:i0 + 25, None] - T0) / P)[..., None] * k
+            T = np.cos(arg) @ coef[0::2] + np.sin(arg) @ coef[1::2]
+            chi[i0:i0 + 25] = ((r0[None, :] - T) ** 2 * w[None, :]).sum(1)
         tau0 = taus[int(np.argmin(chi))]
     p = np.array([tau0, 0.0, 1.0])
 
@@ -165,7 +172,36 @@ def _season_coherence(t, m, w, zp_ep, coef, P, T0, tau, dm, alpha, n_iter=10):
     return p[0] - p[1], float(np.sqrt(cov[0, 0] + cov[1, 1] - 2 * cov[0, 1]))
 
 
-def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7, labels=None) -> TimingFit:
+def _season_minima(t, m, w, zp_ep, coef, P, T0, n_grid=100, n_keep=3):
+    """Distinct local minima of one season's delay chi^2 (dm, alpha free) at a fixed template: coarse grid over one cycle,
+    the deepest `n_keep` grid minima refined by Gauss-Newton; returns the _season_shift results sorted by chi^2 (duplicates
+    within 0.02 P merged)."""
+    taus = P * np.linspace(-0.5, 0.5, n_grid + 1)[:-1]
+    k = np.arange(1, coef.size // 2 + 1)
+    chi = np.empty(n_grid)
+    for i0 in range(0, n_grid, 25):
+        arg = TWO_PI * ((t[None, :] - taus[i0:i0 + 25, None] - T0) / P)[..., None] * k
+        T = np.cos(arg) @ coef[0::2] + np.sin(arg) @ coef[1::2]
+        # profile dm and alpha analytically per grid point (weighted LSQ of r = dm + alpha T)
+        r = (m - zp_ep)[None, :]
+        sw, swT, swTT = w.sum(), (w * T).sum(1), (w * T * T).sum(1)
+        swr, swTr = (w * r).sum(1), (w * T * r).sum(1)
+        det = sw * swTT - swT ** 2
+        dm = (swTT * swr - swT * swTr) / det
+        al = (sw * swTr - swT * swr) / det
+        chi[i0:i0 + 25] = (w * (r - dm[:, None] - al[:, None] * T) ** 2).sum(1)
+    loc = [i for i in range(n_grid) if chi[i] <= chi[i - 1] and chi[i] <= chi[(i + 1) % n_grid]]
+    loc = sorted(loc, key=lambda i: chi[i])[:n_keep]
+    sols = []
+    for i in loc:
+        r = _season_shift(t, m, w, zp_ep, coef, P, T0, taus[i], grid=False)
+        if 0.3 < r["alpha"] < 3 and not any(abs((r["tau"] - q["tau"] + P / 2) % P - P / 2) < 0.02 * P for q in sols):
+            sols.append(r)
+    return sorted(sols, key=lambda q: q["chi2"]) or [_season_shift(t, m, w, zp_ep, coef, P, T0, 0.0, grid=True)]
+
+
+def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_season=15, tol=1e-7, labels=None,
+               gross=8.0, grid_every=3, stability=True, tol_cycle=1e-5) -> TimingFit:
     """Joint template + per-season delay fit for one star in one band.
 
     Parameters
@@ -186,10 +222,27 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
         Maximum template <-> delay iterations.
     tol : float
         Convergence: stop when the mask is unchanged and max |change of tau| < tol [d].
+    tol_cycle : float
+        After 10 iterations, also stop when max |change of tau| < tol_cycle [d] (0.86 s) although the clipping mask still
+        flips (a limit cycle of points at the threshold; found on the 2010-2026 light curves, amplitude ~0.6 s).
     clip : float
         Sigma-clipping threshold on normalized residuals (after each outer iteration).
     min_season : int
         Minimum epochs for a season to get its own delay (smaller seasons are dropped).
+    gross : float
+        Clipping threshold of the FIRST iteration (gross outliers only): the first template is blurred by the unaligned delays,
+        so a tight clip there removes rising-branch points (the most timing information) and can lock a season into a
+        wrong minimum. Later iterations use `clip`. Clipped points can re-enter at every iteration.
+    grid_every : int
+        Coarse grid search over one cycle for every season in the first `grid_every` iterations (v3: only the first; 0/False
+        = v3 behaviour): escapes wrong minima reached in the first iteration (blurred template, outliers not yet clipped).
+        The stability check repeats the grid search once more at the final template.
+    stability : bool
+        After convergence, each season (only > `gross` sigma points removed, final template) is searched for distinct chi^2
+        minima (_season_minima). The season is UNSTABLE and DROPPED (labels returned in `unstable`) if (a) the fitted delay
+        is > 3 sigma from the deepest minimum (clipping- or start-dependent solution), or (b) the two deepest minima are
+        > 3 sigma apart but differ by Delta chi^2 < 9 (after scaling by chi2_nu): an ambiguous season (found in sparse
+        seasons of the 2010-2026 light curves).
 
     Each season also gets a mean-magnitude offset (absorbs slow photometric drifts and blending changes).
     """
@@ -211,7 +264,7 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
             sel = mask & (lab == s)
             if sel.sum() < min_season:
                 continue
-            res[s] = _season_shift(t[sel], m[sel], w[sel], zp[seg_idx[sel]], coef, P, T0, tau_s[s], grid=(it == 0))
+            res[s] = _season_shift(t[sel], m[sel], w[sel], zp[seg_idx[sel]], coef, P, T0, tau_s[s], grid=(it == 0 or it < int(grid_every)))
             tau_s[s] = res[s]["tau"]
         # sigma clipping on the full model
         tau_ep = np.array([tau_s.get(s, 0.0) for s in lab])
@@ -219,12 +272,36 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
         al_ep = np.array([res[s]["alpha"] if s in res else 1.0 for s in lab])
         model = zp[seg_idx] + dm_ep + al_ep * fourier_eval(coef, (t - tau_ep - T0) / P)
         z = (m - model) / err
-        new = keep & np.isin(lab, list(res)) & (np.abs(z) < clip * max(1.0, 1.4826 * np.median(np.abs(z[mask]))))
+        cl = max(clip, gross) if it == 0 else clip
+        new = keep & np.isin(lab, list(res)) & (np.abs(z) < cl * max(1.0, 1.4826 * np.median(np.abs(z[mask]))))
         dtau = max(abs(tau_s[s] - tau_prev[s]) for s in res)
         if it > 0 and np.array_equal(new, mask) and dtau < tol:
             break
+        if it >= 10 and dtau < tol_cycle:    # clipping-set limit cycle (points flipping at the threshold): delays settled
+            mask = new
+            break
         mask = new
 
+    unstable = []
+    if stability:
+        sc_all = max(1.0, 1.4826 * np.median(np.abs(z[mask])))
+        for s in list(res):
+            sel = keep & (lab == s) & (np.abs(z) < gross * sc_all)
+            if sel.sum() < min_season:
+                continue
+            sols = _season_minima(t[sel], m[sel], w[sel], zp[seg_idx[sel]], coef, P, T0)
+            n8 = int(sel.sum())
+            best = sols[0]
+            scl = max(best["chi2"] / max(n8 - 3, 1), 1.0)
+            s_best = np.sqrt(best["var_tau"] * scl)
+            wrap = lambda x: (x + P / 2) % P - P / 2
+            ambiguous = (len(sols) > 1 and (sols[1]["chi2"] - best["chi2"]) / scl < 9.0
+                         and abs(wrap(sols[1]["tau"] - best["tau"])) > 3 * s_best)
+            off_best = abs(wrap(res[s]["tau"] - best["tau"])) > 3 * s_best
+            if ambiguous or off_best:
+                unstable.append(s)
+                del res[s]
+                mask &= lab != s
     ss = np.array(sorted(res))
     n = np.array([int((mask & (lab == s)).sum()) for s in ss])
     chi2 = np.array([res[s]["chi2"] for s in ss])
@@ -253,7 +330,7 @@ def fit_timing(t, m, err, seg, P, T0, K=8, gap=60.0, n_outer=50, clip=4.0, min_s
                      t_season=g("t_eff"), tau=tau_g, tau_err=np.sqrt(g("var_tau") * scale),
                      alpha=g("alpha"), alpha_err=np.sqrt(g("var_alpha") * scale), dm=g("dm"),
                      chi2nu_season=chi2nu, n_season=n, seg_season=seg_season, mask=mask, chi2nu=float(chi_tot),
-                     coh=coh[:, 0], coh_err=coh[:, 1] * np.sqrt(scale))
+                     coh=coh[:, 0], coh_err=coh[:, 1] * np.sqrt(scale), unstable=np.array(unstable, int))
 
 
 def unwrap_delays(tau: np.ndarray, P: float) -> np.ndarray:

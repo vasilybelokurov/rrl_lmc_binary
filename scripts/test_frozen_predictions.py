@@ -56,6 +56,7 @@ from rrlbin.timing import delays_fixed_template, fit_timing, year_labels  # noqa
 
 DAY = 86400.0
 N_MC = 4000
+V3_FIT = dict(gross=4.0, grid_every=False, stability=False)   # fit_timing settings of pipeline v3 (frozen series)
 SPLIT = 9500.0          # HJD' between the 2017-2020 and 2022-2026 blocks (COVID gap)
 G = {}
 
@@ -114,7 +115,7 @@ def _one(oid):
     tI, yI = t[I], y[I]
     # 2. public refit -> template, zero point, cycle offset
     lc = load_star(oid)["I"]
-    f = fit_timing(*lc, P, T0, K=8, labels=year_labels(lc[0]))
+    f = fit_timing(*lc, P, T0, K=8, labels=year_labels(lc[0]), **V3_FIT)   # v3 settings: reproduces the frozen series
     lab_pub = year_labels(f.t_season)
     cm_I = np.array([G["cm"].get((0, int(L)), 0.0) for L in lab_pub])
     # match seasons by label (the frozen series has the same seasons)
@@ -260,7 +261,18 @@ def main():
     today = dt.date.today().isoformat()
     out_dir, pl = Path("results/predictions"), Path("plots/predictions_test" + a.tag)
     pl.mkdir(parents=True, exist_ok=True)
-    meta = json.loads(Path(f"results/predictions/predictions_{a.date}_meta.json").read_text())["candidates"]
+    M = json.loads(Path(f"results/predictions/predictions_{a.date}_meta.json").read_text())
+    import hashlib
+    import subprocess
+    if hashlib.sha256(Path(M["table"]).read_bytes()).hexdigest() != M["sha256"]:
+        raise SystemExit(f"frozen table {M['table']} does not match its recorded sha256")
+    frozen = [M["table"], f"results/predictions/predictions_{a.date}_meta.json", f"results/predictions/cov_{a.date}",
+              "results/calib/common_mode_v3.json", "results/calib/band_lag_v3.json", "results/real/series_v3", "results/partC/partC_tiers.csv"]
+    diff = subprocess.run(["git", "diff", "--name-only", f"predictions-{a.date}", "--", *frozen], capture_output=True, text=True)
+    if diff.returncode != 0 or diff.stdout.strip():
+        raise SystemExit(f"frozen inputs differ from tag predictions-{a.date}: {diff.stdout.strip() or diff.stderr.strip()}")
+    print(f"frozen inputs verified (sha256 + identical to tag predictions-{a.date})", flush=True)
+    meta = M["candidates"]
     covdir = Path(f"results/predictions/cov_{a.date}")
     ids = sorted(f.stem[4:] for f in covdir.glob("cov_*.npz"))
     ser = load("results/real/series_v3").set_index("ogle_id")
