@@ -16,6 +16,9 @@ Nothing frozen is refitted. Per candidate:
   6. POST-HOC H1 variants (sensitivity only; the frozen H1 is the test): 'boot' = frozen H1 covariance + the variance of the
      white-noise bootstrap envelope (orbit-parameter uncertainty); 'h0noise' = best orbit + the star's H0 red-noise GP
      (kriging re-run on the frozen public series with the frozen orbit and gp_h0) - a deliberately generous H1.
+  Outliers (the 2026 files are raw database extractions, Soszynski, pers. comm.): per-season 4-sigma clipping (robust scale);
+     a season is flagged UNSTABLE if its delay with only gross outliers removed (8 sigma) differs by > 3 sigma; scores are also
+     given for the stable seasons only (suffix _stable).
   7. Check of the measurement: new-season delays re-measured with a template refitted to the whole 2010-2026 light curve
      (gauge tied to the frozen frame by the median offset over the public seasons) -> max |difference| [s].
 
@@ -128,9 +131,16 @@ def _one(oid):
     new = (sx == "O4") & (labx > lab_pub.max())
     zp = f.zp[list(f.seg_names).index("O4")]
     ts, tau, terr, al, al_err, nuse, chi2nu, labs = delays_fixed_template(tx[new], mx[new], ex[new], labx[new], f.coef, P, T0,
-                                                                          min_season=15, clip=4.0, zp=zp, full=True)
+                                                                          min_season=15, clip=G["clip"], zp=zp, full=True)
     o = np.argsort(ts)
     ts, tau, terr, al, al_err, nuse, chi2nu, labs = (a[o] for a in (ts, tau, terr, al, al_err, nuse, chi2nu, labs))
+    # stability flag: the same seasons with only gross outliers removed (8 sigma); in sparse seasons a 4-sigma clip can remove
+    # rising-branch points (most timing information) and move the delay to another minimum (found for 17610 season 23)
+    _, tau8, terr8, *_, labs8 = delays_fixed_template(tx[new], mx[new], ex[new], labx[new], f.coef, P, T0, min_season=15, clip=8.0,
+                                                      zp=zp, full=True)
+    d8 = dict(zip(labs8, zip(tau8, terr8)))
+    dtau8 = np.array([(tau[j] - d8[L][0] + P / 2) % P - P / 2 if L in d8 else np.nan for j, L in enumerate(labs)])
+    unstable = np.abs(dtau8) > 3 * np.array([max(terr[j], d8[L][1]) if L in d8 else np.inf for j, L in enumerate(labs)])
     yn = tau + k_last * P + G["cm_shift"] / DAY
     prev, jumps = y_last, []
     for j in range(yn.size):
@@ -151,7 +161,9 @@ def _one(oid):
                med_err_s=float(np.median(err_s)) if tt.size else np.nan, frame_resid_max_s=float(resid.max()),
                k_const=bool(np.all(k == k_last)), max_jump_cycles=float(max(jumps)) if jumps else np.nan,
                alpha_dev_max=float(np.max(np.abs(al[inside] - 1))) if tt.size else np.nan)
-    for lab_, sel in (("all", np.ones(tt.size, bool)), ("1720", tt < SPLIT), ("2226", tt >= SPLIT)):
+    stab = ~unstable[inside]
+    out["n_unstable"] = int((~stab).sum())
+    for lab_, sel in (("all", np.ones(tt.size, bool)), ("1720", tt < SPLIT), ("2226", tt >= SPLIT), ("stable", stab)):
         ix = np.flatnonzero(sel)
         sc = score_block(d[ix], err_s[ix], m1[ix], C1[np.ix_(ix, ix)], w1, m0[ix], C0[np.ix_(ix, ix)], w0)
         out.update({f"{k_}_{lab_}": v for k_, v in sc.items()})
@@ -190,7 +202,8 @@ def _one(oid):
     out["boot95_cover"] = float(np.mean((d >= lo) & (d <= hi))) if tt.size else np.nan
     seasons = pd.DataFrame(dict(ogle_id=oid, label=labs[inside], t=tt, y_s=d, err_s=err_s, alpha=al[inside], alpha_err=al_err[inside],
                                 n_epochs=nuse[inside], chi2nu=chi2nu[inside], h1_mean=m1, h1_sd=np.sqrt(np.diag(C1) + w1 ** 2),
-                                h0_mean=m0, h0_sd=np.sqrt(np.diag(C0) + w0 ** 2)))
+                                h0_mean=m0, h0_sd=np.sqrt(np.diag(C0) + w0 ** 2), dtau_clip8_s=dtau8[inside] * DAY,
+                                unstable=unstable[inside]))
     seasons["z_h1"] = (seasons.y_s - seasons.h1_mean) / np.hypot(seasons.h1_sd, seasons.err_s)
     seasons["z_h0"] = (seasons.y_s - seasons.h0_mean) / np.hypot(seasons.h0_sd, seasons.err_s)
     plot(oid, out, t, y, e, band, offs, z, seasons)
@@ -241,6 +254,7 @@ def main():
     ap.add_argument("--date", default="2026-10-01")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--cm-shift", type=float, default=0.0, help="common-mode shift [s] added to all new seasons (sensitivity)")
+    ap.add_argument("--clip", type=float, default=4.0, help="per-season sigma clipping of the new epochs (robust scale)")
     ap.add_argument("--tag", default="")
     a = ap.parse_args()
     today = dt.date.today().isoformat()
@@ -256,7 +270,7 @@ def main():
     have = [o for o in ids if Path(f"data/raw/ogle4_lmc_rrlyr_2026/phot/I/{o}.dat").exists()]
     print(f"frozen candidates {len(ids)}; with new OGLE data {len(have)}; missing {sorted(set(ids) - set(have))}", flush=True)
     state = dict(meta=meta, covdir=covdir, ser=ser.loc[have], cm=cm, lag=lag, pred=pred[pred.ogle_id.isin(have)], pl=pl,
-                 tier={o: meta[o]["tier"] for o in have}, cm_shift=a.cm_shift)
+                 tier={o: meta[o]["tier"] for o in have}, cm_shift=a.cm_shift, clip=a.clip)
     with Pool(a.workers, initializer=_init, initargs=(state,)) as pool:
         res = pool.map(one, have, chunksize=1)
     R = pd.DataFrame([r[0] for r in res])
@@ -264,7 +278,7 @@ def main():
     R.to_csv(out_dir / f"test_{today}{a.tag}.csv", index=False)
     S.to_csv(out_dir / f"test_{today}{a.tag}_seasons.csv", index=False)
     cols = ["ogle_id", "tier", "P_orb", "A_s", "n_new", "med_err_s", "frame_resid_max_s", "k_const", "max_jump_cycles",
-            "alpha_dev_max", "lnBF_1720", "lnBF_2226", "lnBF_all", "p_h1_all", "p_h0_all", "pfa_h0", "pmiss_h1", "lnBF_boot", "p_h1_boot",
+            "alpha_dev_max", "n_unstable", "lnBF_1720", "lnBF_2226", "lnBF_all", "p_h1_all", "p_h0_all", "lnBF_stable", "p_h1_stable", "pfa_h0", "pmiss_h1", "lnBF_boot", "p_h1_boot",
             "lnBF_h0noise", "p_h1_h0noise", "remeasure_maxdiff_s", "remeasure_public_rms_s", "boot95_cover"]
     print(R.sort_values(["tier", "lnBF_all"], ascending=[True, False])[[c for c in cols if c in R]].round(3).to_string(index=False))
     if "msg" in R:

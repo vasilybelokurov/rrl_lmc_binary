@@ -651,3 +651,16 @@ in all 8 seasons) and 15158 (Tier 1; +7.2, p 0.30)**; **orbit rejected** (p < 0.
   13854, 15587 (15158 drops to +1.7). → **The number of rejections depends on the H1 noise model; 13854 survives every variant.**
 - Reading: consistent with Part B (no population excess; most candidates expected to be red timing noise). Most frozen orbits fail; 13854 (and less robustly 15158)
   passed a genuine out-of-sample prediction. A rejected best-fit orbit does not exclude a binary with other parameters → next: joint refit on 1992–2026.
+
+### Outliers in the 2026 files (user forwarded I. Soszyński's note: raw database extraction incl. the latest Chilean data → outlying points possible; central
+fields re-reduced after Soszyński+2016 — consistent with the re-reduction found above)
+- Survey (fit_timing on the full 2010–2026 I light curve; residuals from the per-season delay/Δm/α model, robust scale): fraction of new epochs beyond 5σ
+  median 0.04–0.08% (public epochs: 0, already cleaned), p90 0.2–0.7%, mostly BRIGHTER than the model; rare bad stars (e.g. 02567: 15% of new epochs).
+  Candidates: p90 0.18%. No error sentinels, no duplicated epochs, no points > 1.5 mag from the median.
+- Prediction test vs per-season clipping of the new epochs (4σ default; 3σ, 6σ, none): **no candidate changes class** under any choice. Individual sparse seasons
+  can move: 11166 season 21 unclipped → one outlier gives α = 2.63, χ²_ν = 186 (−5807 s) — the 4σ clip handles it; 17610 season 23 (41 epochs) moves 1015 s
+  between 4σ and 6σ. Jackknife + χ² profile for that season: the global minimum of the full-season profile is at −13,672 s (χ² 75 vs ≥ 766 for other minima);
+  the 4σ clip removes rising-branch points (largest dm/dt, most timing information) and lands 1020 s away. → In sparse seasons an aggressive clip is itself a risk.
+- `test_frozen_predictions.py`: `--clip` option; per-season stability flag (delay with only > 8σ points removed differs by > 3σ) and scores on stable seasons only.
+  Unstable: 1 of 211 seasons (17610/23); classes identical with stable seasons only (2 confirmed-like 13854, 15158; 20 rejected; 5 inconclusive).
+- TODO for the 1992–2026 refit: gross-outlier pre-clip (8σ) before the 4σ clip in fit_timing, a per-season stability flag, and the later-iteration grid search (11166).
