@@ -827,3 +827,11 @@ null: 300 random stars × 2 simulated from their own fitted H_RN, identical fits
   variability more generally (e.g. α red noise, possibly correlated with τ), and its leakage must be measured empirically: P(α χ²_ν < 2 | coherent intrinsic)
   ≈ 2/16 ≈ 12% (95% CI roughly 2–38%; small numbers → enlarge the sample with the full 17.5k survey).
 - The 51 candidates with a significant periodic component: none has d2lnl > 13.8 — expected, they were pre-selected by the α veto.
+
+## 2026-10-06 21:30 — v4 MACHO simulations done (B1 + B2: results/inject/stats_v4_macho.parquet, 26,982 rows, 0 failures); B3 (OGLE-only) running
+Old-cut population check on 1992–2026 (same logic as v3 Part B):
+- Pass rates of the v4 candidate cuts: LTTE 0.209 (v3 0.160), jump_big 0.125, empirical red noise 0.043, rwalk 0.037, rwalk_big 0.034, Blazhko 0.021,
+  jump 0.011, null 0.
+- D survival, real MACHO stars vs empirical sims: P(D > 10/20/40/80) = 0.845/0.471/0.230/0.057 vs 0.851/0.428/0.177/0.046 (null 0.278/0.003/0/0).
+- All cuts except the α veto: real 239 vs empirical-predicted 289; α pass among real such stars 0.39 → expected after α ≈ 112 vs **real 93 candidates**.
+→ As in v3: **no population excess of candidates over realistic timing noise** on the 34-yr baseline either. (Old ad hoc cuts; superseded by stages 3–4.)
