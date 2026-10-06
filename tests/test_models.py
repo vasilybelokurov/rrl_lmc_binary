@@ -80,3 +80,16 @@ def test_fit_amp_mod_detects_modulation_and_is_chi2_under_null():
     assert r["d2lnl"] > 50 and abs(r["amp_mod"] - 0.10) < 3 * r["amp_mod_err"]
     d = [fit_amp_mod(t, 1 + rng.normal(0, 1, t.size) * ae, ae, band, 3000.0)["d2lnl"] for _ in range(300)]
     assert 1.4 < np.mean(d) < 2.8 and np.mean(np.array(d) > 13.8) < 0.01
+
+
+def test_fit_alpha_var():
+    """Smoothly varying alpha (10% rms, l = 1500 d) is detected; constant alpha with correct errors gives small d2lnl
+    (the statistic is >= 0 by construction; < 1% above 13.8 in 300 null draws)."""
+    from rrlbin.models import fit_alpha_var, se_kernel
+    rng = np.random.default_rng(9)
+    t, band, _ = seasons(rng, 30)
+    ae = np.full(t.size, 0.02)
+    a = 1 + rng.multivariate_normal(np.zeros(t.size), se_kernel(t, t, 0.10, 1500.0)) + rng.normal(0, 1, t.size) * ae
+    assert fit_alpha_var(t, a, ae, band)["d2lnl"] > 30
+    d = np.array([fit_alpha_var(t, 1 + rng.normal(0, 1, t.size) * ae, ae, band, n_amp=6)["d2lnl"] for _ in range(300)])
+    assert d.min() >= -1e-9 and np.mean(d > 13.8) < 0.01

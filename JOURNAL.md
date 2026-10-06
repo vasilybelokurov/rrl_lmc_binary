@@ -841,3 +841,9 @@ B3 (OGLE-only Level 1 sims, 800 × 18, 1992–2026 epochs) completed → results
 → efficiency; empirical red noise → false-pass). B4 (OGLE-only Level 2 = old D statistics) skipped: only served the old-cut check (already done with MACHO).
 Limitation of all v4 sims: ad hoc nuisance priors; no coherent quasi-periodic class; no amplitude variability in the empirical class → stage 4 needs new
 simulations drawn from the stage-2 models fitted to real stars.
+
+## 2026-10-06 late — Stage 2: general amplitude-variability channel; all-star survey launched
+- `models.fit_alpha_var`: α_j per-band constant (+ fixed floor) vs + SE GP on 350–6000 d (amplitude grid) → d2lnl; test: 10% smooth variability detected
+  (> 30); null: ≥ 0, < 1% above 13.8 (300 draws).
+- `coherence_survey.py` extended (amplitude channel: fit_alpha_var + fit_amp_mod at P_q; `--n-random 0` = all stars). Launched on all 16,929 stars with ≥ 12
+  seasons, 6 workers → results/stage1/survey_all (logs/survey_all.log).

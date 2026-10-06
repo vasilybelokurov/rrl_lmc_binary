@@ -166,3 +166,28 @@ def fit_amp_mod(t, alpha, alpha_err, band, P, n_s=12):
     g = np.array([b1[-2], b1[-1]]) / max(amp, 1e-12)
     amp_err = float(np.sqrt(g @ c1[-2:, -2:] @ g))
     return dict(lnl0=l0, lnl1=l1, d2lnl=2 * (l1 - l0), amp_mod=amp, amp_mod_err=amp_err)
+
+
+def fit_alpha_var(t, alpha, alpha_err, band, ells=RN_ELLS, n_amp=10, s_floor=0.0):
+    """Amplitude channel of H_BL in its general form: does the season amplitude scale alpha_j vary beyond its errors?
+
+    H0 (what an LTTE orbit predicts): alpha_j = per-band constant, variance alpha_err^2 + s_floor^2 (s_floor: population
+    calibration floor, fixed). H1: + smooth variability, SE GP on any of the time scales `ells` (+ the same floor), amplitude on
+    a grid. Returns dict(lnl0, lnl1, d2lnl = 2 (lnl1 - lnl0), A [fractional], ell). Variability at the timing period is a special
+    case; stage 1b showed coherent intrinsic modulators vary in amplitude but mostly not as a synchronous sinusoid."""
+    t, a, ae = (np.asarray(x, float) for x in (t, alpha, alpha_err))
+    band = np.asarray(band).astype(int)
+    X = np.column_stack([(band == b).astype(float) for b in np.unique(band)])
+    D = np.diag(ae ** 2 + s_floor ** 2)
+    l0 = _gls_lnl(X, a, D)[0]
+    best = (l0, 0.0, np.nan)
+    for ell in ells:
+        base = se_kernel(t, t, 1.0, ell)
+        for A in np.geomspace(0.003, 0.3, n_amp):
+            try:
+                l = _gls_lnl(X, a, D + A ** 2 * base)[0]
+            except np.linalg.LinAlgError:
+                continue
+            if l > best[0]:
+                best = (l, float(A), float(ell))
+    return dict(lnl0=l0, lnl1=best[0], d2lnl=2 * (best[0] - l0), A=best[1], ell=best[2])
