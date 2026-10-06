@@ -847,3 +847,7 @@ simulations drawn from the stage-2 models fitted to real stars.
   (> 30); null: ≥ 0, < 1% above 13.8 (300 draws).
 - `coherence_survey.py` extended (amplitude channel: fit_alpha_var + fit_amp_mod at P_q; `--n-random 0` = all stars). Launched on all 16,929 stars with ≥ 12
   seasons, 6 workers → results/stage1/survey_all (logs/survey_all.log).
+- Survey stopped after ~25 min (user: "why 3 h?"): per-point grid evaluation was Python-overhead bound (0.28 ms × 26k evaluations per star).
+  `models._Lik.lnl_grid`: batched profiled likelihood over the (A, s) grid for each kernel shape (one batched Cholesky/solve); fit_white, fit_qp, fit_rn use it.
+  Test: equals ml_lnl at every grid point to 1e-8 (with offsets and priors). End to end on 40 survey stars: all likelihoods identical to < 1e-9, same P_q and
+  coherence; 0.40 s per star (was ~3.5 s). All-star survey relaunched (16,929 stars, 6 workers; ~20–30 min).

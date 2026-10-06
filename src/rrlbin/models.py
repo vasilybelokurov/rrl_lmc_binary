@@ -54,6 +54,48 @@ def ml_lnl(t, y, err, band, K=None, s=0.0, priors=None, extra=None):
     return _gls_lnl(X, y, C)[0]
 
 
+class _Lik:
+    """Precomputed pieces of ml_lnl for one star (design with prior pseudo-rows), and a BATCHED evaluation of the profiled
+    Gaussian log-likelihood over grids of correlated-noise amplitude A and white jitter s for a fixed kernel shape K0:
+    C(A, s) = A^2 K0 + diag(err^2 + s^2) (data block) and diag(sp^2) (prior block). Identical to ml_lnl element by element
+    (tests/test_models.py), ~20x faster (one batched solve per kernel shape instead of one Python call per grid point)."""
+
+    def __init__(self, t, y, err, band, priors=None):
+        t, y, err = (np.asarray(x, float) for x in (t, y, err))
+        X, names = design(t, np.asarray(band), np.average(t, weights=err ** -2))
+        Xp, yp, sp = _augment(X, y, names, priors)
+        self.n, self.m = t.size, len(yp)
+        self.X = np.vstack([X, Xp]) if self.m else X
+        self.y = np.r_[y, yp] if self.m else y
+        self.e2 = err ** 2
+        self.sp2 = np.asarray(sp, float) ** 2 if self.m else np.empty(0)
+
+    def lnl_grid(self, K0, A_grid, s_grid):
+        """lnL for every (A, s) on the grid -> array (len(A_grid), len(s_grid)). K0: (n, n) or None (no correlated noise)."""
+        n, m = self.n, self.m
+        A2 = np.asarray(A_grid, float)[:, None, None, None] ** 2
+        S2 = np.asarray(s_grid, float)[None, :, None, None] ** 2
+        N = n + m
+        C = np.zeros((len(A_grid), len(s_grid), N, N))
+        if K0 is not None:
+            C[..., :n, :n] = A2 * K0
+        idx = np.arange(n)
+        C[..., idx, idx] += self.e2 + S2[..., 0]
+        if m:
+            j = np.arange(n, N)
+            C[..., j, j] = self.sp2
+        Z = np.concatenate([self.X, self.y[:, None]], axis=1)              # (N, p+1)
+        L = np.linalg.cholesky(C)
+        W = np.linalg.solve(L, np.broadcast_to(Z, C.shape[:-2] + Z.shape))  # L^-1 [X, y]
+        Xw, yw = W[..., :-1], W[..., -1]
+        F = np.einsum("...ki,...kj->...ij", Xw, Xw)
+        g = np.einsum("...ki,...k->...i", Xw, yw)
+        beta = np.linalg.solve(F, g[..., None])[..., 0]
+        q = np.einsum("...k,...k->...", yw, yw) - np.einsum("...i,...i->...", beta, g)
+        logdet = np.log(np.diagonal(L, axis1=-2, axis2=-1)).sum(-1)
+        return -0.5 * q - logdet - 0.5 * N * np.log(2 * np.pi)
+
+
 def _amp_grid(err, n):
     return np.r_[0.0, np.geomspace(0.3, 30, n) * np.median(err)]
 
@@ -63,9 +105,13 @@ def s_grid(err, n=8):
     return np.r_[0.0, np.geomspace(0.1, 30, n) * np.median(err)]
 
 
-def fit_white(t, y, err, band, priors=None, n_s=8):
+def fit_white(t, y, err, band, priors=None, n_s=8, lik=None):
     """H_W: trend + offsets + white jitter only (the common floor of every model). Returns dict(lnl, s)."""
-    return dict(zip(("lnl", "s"), max((ml_lnl(t, y, err, band, None, s, priors), s) for s in s_grid(err, n_s))))
+    lik = lik or _Lik(t, y, err, band, priors)
+    sg = s_grid(err, n_s)
+    l = lik.lnl_grid(None, [0.0], sg)[0]
+    k = int(np.argmax(l))
+    return dict(lnl=float(l[k]), s=float(sg[k]))
 
 
 def fit_qp(t, y, err, band, priors=None, periods=None, coherence=COHERENCE, n_amp=12, n_s=8):
@@ -74,22 +120,21 @@ def fit_qp(t, y, err, band, priors=None, periods=None, coherence=COHERENCE, n_am
     t = np.asarray(t, float)
     if periods is None:
         periods = period_grid(np.ptp(t), p_max_factor=0.5, oversample=2)
-    A_grid, sg = _amp_grid(err, n_amp), s_grid(err, n_s)
+    A_grid, sg = _amp_grid(err, n_amp)[1:], s_grid(err, n_s)
+    lik = _Lik(t, y, err, band, priors)
     by_c = {}
     for c in coherence:
         best = (-np.inf, None)
         for Pq in periods:
-            base = qp_kernel(t, t, 1.0, Pq, c * Pq)
-            for A in A_grid[1:]:
-                for s in sg:
-                    try:
-                        l = ml_lnl(t, y, err, band, A ** 2 * base, s, priors)
-                    except np.linalg.LinAlgError:
-                        continue
-                    if l > best[0]:
-                        best = (l, dict(Pq=float(Pq), A=float(A), s=float(s), c=float(c)))
+            try:
+                l = lik.lnl_grid(qp_kernel(t, t, 1.0, Pq, c * Pq), A_grid, sg)
+            except np.linalg.LinAlgError:
+                continue
+            i, j = np.unravel_index(int(np.argmax(l)), l.shape)
+            if l[i, j] > best[0]:
+                best = (float(l[i, j]), dict(Pq=float(Pq), A=float(A_grid[i]), s=float(sg[j]), c=float(c)))
         by_c[c] = best
-    l0 = fit_white(t, y, err, band, priors, n_s)["lnl"]     # A = 0 (no modulation): the floor
+    l0 = fit_white(t, y, err, band, priors, n_s, lik=lik)["lnl"]     # A = 0 (no modulation): the floor
     c_best = max(by_c, key=lambda c: by_c[c][0])
     return dict(lnl=max(by_c[c_best][0], l0), lnl_by_c={c: v[0] for c, v in by_c.items()}, best=by_c[c_best][1], lnl_white=l0)
 
@@ -118,17 +163,16 @@ def fit_rn(t, y, err, band, priors=None, ells=RN_ELLS, n_amp=12, n_s=8):
     """ML fit of H_RN (smooth red noise, squared-exponential kernel) on grids of (l, A, s). Returns dict(lnl, A, ell, s)."""
     t = np.asarray(t, float)
     A_grid, sg = _amp_grid(err, n_amp), s_grid(err, n_s)
+    lik = _Lik(t, y, err, band, priors)
     best = (-np.inf, None)
     for ell in ells:
-        base = se_kernel(t, t, 1.0, ell)
-        for A in A_grid:
-            for s in sg:
-                try:
-                    l = ml_lnl(t, y, err, band, A ** 2 * base, s, priors)
-                except np.linalg.LinAlgError:
-                    continue
-                if l > best[0]:
-                    best = (l, dict(A=float(A), ell=float(ell), s=float(s)))
+        try:
+            l = lik.lnl_grid(se_kernel(t, t, 1.0, ell), A_grid, sg)
+        except np.linalg.LinAlgError:
+            continue
+        i, j = np.unravel_index(int(np.argmax(l)), l.shape)
+        if l[i, j] > best[0]:
+            best = (float(l[i, j]), dict(A=float(A_grid[i]), ell=float(ell), s=float(sg[j])))
     return dict(lnl=best[0], **best[1])
 
 

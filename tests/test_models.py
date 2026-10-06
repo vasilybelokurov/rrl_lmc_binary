@@ -93,3 +93,21 @@ def test_fit_alpha_var():
     assert fit_alpha_var(t, a, ae, band)["d2lnl"] > 30
     d = np.array([fit_alpha_var(t, 1 + rng.normal(0, 1, t.size) * ae, ae, band, n_amp=6)["d2lnl"] for _ in range(300)])
     assert d.min() >= -1e-9 and np.mean(d > 13.8) < 0.01
+
+
+def test_batched_likelihood_equals_ml_lnl():
+    """_Lik.lnl_grid reproduces ml_lnl at every grid point (with band offsets and priors)."""
+    from rrlbin.models import _Lik, qp_kernel
+    rng = np.random.default_rng(10)
+    t, _, err = seasons(rng, 30)
+    band = np.r_[np.zeros(22, int), np.ones(4, int), 2 * np.ones(4, int)]
+    pri = {1: (0.01, 300 / DAY), 2: (0.004, 200 / DAY)}
+    y = rng.normal(0, 1, t.size) * err + 0.01 * (band == 1)
+    K0 = qp_kernel(t, t, 1.0, 2500.0, 2500.0)
+    A, s = np.array([1e-4, 3e-3, 1e-2]), np.array([0.0, 1e-3, 5e-3])
+    L = _Lik(t, y, err, band, pri).lnl_grid(K0, A, s)
+    for i, a in enumerate(A):
+        for j, sj in enumerate(s):
+            assert np.isclose(L[i, j], ml_lnl(t, y, err, band, a ** 2 * K0, sj, pri), rtol=0, atol=1e-8)
+    Lw = _Lik(t, y, err, band, pri).lnl_grid(None, [0.0], s)
+    assert np.allclose(Lw[0], [ml_lnl(t, y, err, band, None, sj, pri) for sj in s], atol=1e-8)
