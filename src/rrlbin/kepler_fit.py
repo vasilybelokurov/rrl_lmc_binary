@@ -37,7 +37,8 @@ def _linear(t, tau, sig, band, q, priors):
     return beta, names, y - A @ beta, X
 
 
-def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, seed=0, circular=False, x0=None):
+def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, seed=0, circular=False, x0=None,
+                  p_factors=(0.75, 0.9, 1.0, 1.15, 1.35)):
     """Best Keplerian fit near P0 (period searched over 0.6-1.6 P0). Returns a dict with P, A [s], e, omega, t_p, chi2,
     the linear coefficients, the model, and bootstrap percentiles (16, 50, 84) of P, A, e, f(M), K1."""
     t, tau, err, band = map(np.asarray, (t, tau, err, band))
@@ -62,7 +63,7 @@ def fit_keplerian(t, tau, err, band, P0, s_jit=0.0, priors=None, n_boot=100, see
         return best
 
     starts = [[np.log(P0 * f), np.sqrt(e) * np.cos(w), np.sqrt(e) * np.sin(w), ph]
-              for f in (0.75, 0.9, 1.0, 1.15, 1.35) for e in (0.0, 0.3, 0.6) for w in ((0.0,) if e == 0 else (0.0, 1.6, 3.1, 4.7))
+              for f in p_factors for e in (0.0, 0.3, 0.6) for w in ((0.0,) if e == 0 else (0.0, 1.6, 3.1, 4.7))
               for ph in (0.0, 0.25, 0.5, 0.75)] if x0 is None else [list(x0)]
     if not np.isfinite(P0) or P0 <= 0:
         raise ValueError(f"invalid starting period {P0}")

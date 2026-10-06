@@ -28,11 +28,14 @@ def mass_function(P_orb, a1sini_s):
     return 4 * np.pi ** 2 * (np.asarray(a1sini_s) * C) ** 3 / (G * (np.asarray(P_orb) * DAY) ** 2) / MSUN
 
 
-def kepler_E(M, e, n_iter=30):
-    """Solve Kepler's equation E - e sin E = M (Newton; e < 0.99)."""
+def kepler_E(M, e, n_iter=30, tol=1e-12):
+    """Solve Kepler's equation E - e sin E = M (Newton; e < 0.99); stops when max |dE| < tol (typically 4-6 iterations)."""
     E = M + e * np.sin(M)
     for _ in range(n_iter):
-        E = E - (E - e * np.sin(E) - M) / (1 - e * np.cos(E))
+        dE = (E - e * np.sin(E) - M) / (1 - e * np.cos(E))
+        E = E - dE
+        if np.max(np.abs(dE)) < tol:
+            break
     return E
 
 

@@ -756,3 +756,15 @@ modulation, joint with α_j, c_j); per-alternative parametric bootstrap, interse
 | validations: p calibration under each null; identifiability experiment; end-to-end through light curves + selection; f_bin recovery at f = 0 and low f with varied nuisance mixes | agree | the identifiability experiment and the f = 0 end-to-end mock are the two gating tests |
 
 ## 2026-10-06 — Plan written: docs/PLAN.md (living document: goal, current state, stages 0–7 with gates, false-positive list, rules). Update its status column with every stage.
+
+## 2026-10-06 — Stage 1 (identifiability) started; Keplerian fits v4
+- `RRL_VERSION=v4 scripts/partC_kepler.py` on 146 stars (140 v4 candidates + 6 frozen not in v4): 143 fitted; e p10/50/90 0.15/0.39/0.77; eccentric preferred
+  (ΔBIC > 6) 33; M2,min 0.17/0.53/1.51 Msun; K1 2.8/7.1/14.5 km/s; χ²_ν 0.57/1.09/1.46 → results/partC_v4/kepler.csv.
+- `src/rrlbin/models.py` (stage 2 seed): `ml_lnl` (profiled GLS likelihood, priors as pseudo-rows; same convention for every model), `qp_kernel`, `se_kernel`,
+  `fit_qp` (grid ML over P_q 400 d…T/2, coherence c = l/P_q ∈ {0.5, 1, 2, 4, ∞}, A, s; returns lnL per c), `fit_ltte` (Keplerian + white, P0 from the O−C search,
+  multi-start, jitter profiled with the orbit shape fixed). Tests (tests/test_models.py, 4): kernel PSD; ml_lnl = brute-force density; orbit recovered;
+  QP period recovered.
+- Speed: `ltte.kepler_E` stops at |ΔE| < 1e-12 (was a fixed 30 Newton steps; residual of Kepler's equation ≤ 9e-16 for e ≤ 0.95); `fit_keplerian(p_factors=)`.
+  fit_ltte 36 → 14 s per 42-season star; fit_qp 4 s. Tests 21/21 (ltte, models, partC).
+- Smoke (1 cadence, 24 configs): QP with c ≤ 1 → Λ = lnL_LTTE − lnL_QP = −3…−25, LTTE +9…+28 (separable); QP with c = ∞ → Λ +9…+20, like LTTE
+  (degenerate, as expected); c = 2 at P_q = 4000 d also LTTE-like. Full run launched: 30 cadences × 24 configs = 720 (logs/stage1_ident.log).
