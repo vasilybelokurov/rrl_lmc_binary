@@ -866,3 +866,5 @@ simulated light curves of real stars (P logU 300–10⁴ d, M2 logU 0.05–1.5 M
 | 0.05–0.15 | any | ≤ 0.04 | no useful limit | — |
 Caveat: ε is measured for orbits with photometric noise only; intrinsic red timing noise in real binaries could lower ε for weak signals (small effect for
 M2 ≥ 0.4, whose amplitudes 500–2000 s exceed the typical red noise ~400 s). The noise-subtracted limit depends on the red-noise model (b ≈ k: no excess).
+
+- All-star survey finished: results/stage1/survey_all.parquet (16,929 stars). To be used for the candidate short list (amplitude stability, coherence).
