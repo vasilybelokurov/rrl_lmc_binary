@@ -701,3 +701,18 @@ fields re-reduced after Soszyński+2016 — consistent with the re-reduction fou
 - Known residual mismatch: simulated light curves have Gaussian noise only; the real 2016–2026 data carry ~0.1% raw outliers (clipped).
 - `scripts/run_refit_v4.sh`: A1 Level 1 real → A2 common mode (v3 candidates excluded; all new years) → A3 band lag → A4 Level 2 real →
   A5 noise checkpoint (logged, run continues) → B1–B4 sims (MACHO 1500 × 18, OGLE-only 800 × 18) on the 1992–2026 epochs. Launched.
+
+## 2026-10-06 — Refit v4, part A (real data, 1992–2026) — `scripts/run_refit_v4.sh`, log logs/refit_v4.log
+- A1 Level 1 (65 min; machine shared with another 9-core job): 17,490/17,492 ok (same 2 OGLE I failures as v3); bands I 10,878, IMBMR 6,599, IMB 13.
+  OGLE I seasons per star p10/50/90 = 17/22/27 (v3 13/14/19); 16,223 stars have post-2016 seasons (8 typical); post-2016 season error p10/50/90 = 99/218/497 s.
+- A2 common mode (v3 candidates excluded; converged, last update 1.2 s): OGLE 2016/17–2019/20 = +13, +16, +14, +4 s; 2022/23–2025/26 = −4, −13, −17, −30 s
+  (within the ±60 s tested in the prediction test); earlier years as v3 within ~10 s (e.g. 1997 −71 vs −66). MACHO B/R pattern unchanged (−129 … +52 s).
+- A3 band lag: B −6744 P + 2021 s, sd 298 s (v3 −6648 P + 1966, 293); R −2638 P + 714 s, sd 217 s (v3 −2656 P + 718, 218) → unchanged.
+- A4 Level 2: 17,482 rows, 0 failures (40 min).
+- Candidate cuts (unchanged thresholds; `RRL_VERSION=v4 scripts/partC_candidates.py` → results/partC_v4/): **140 (93 with MACHO) vs 75 in v3**; funnel D > 40:
+  2239 (12.8% of stars; v3 5.8%) → the D distribution of the real stars grows with the baseline (red noise), so the fixed D > 40 cut lets more noise through;
+  contamination must come from the v4 simulations (running). v3 → v4: 44 kept (median |ΔP/P| 0.027, A ratio 1.00, D ratio 1.12), 31 dropped
+  (cycles 8, α 5, D 5, …), 96 new.
+- The 27 tested frozen candidates in v4: 20/27 still pass the cuts, including most whose frozen orbit FAILED (e.g. 10449, 09642, 17610, 19535): with 34 yr the
+  circular-orbit search re-fits a modified orbit + noise. → the D-based selection does not discriminate orbits from red noise; vetting must rest on out-of-sample
+  prediction and simulation-calibrated rates. 13854 (D 71 → 98, P 4622 → 4784 d) and 15158 (D 49 → 57, P 3108 → 3086 d) remain candidates with stable periods.
