@@ -768,3 +768,26 @@ modulation, joint with α_j, c_j); per-alternative parametric bootstrap, interse
   fit_ltte 36 → 14 s per 42-season star; fit_qp 4 s. Tests 21/21 (ltte, models, partC).
 - Smoke (1 cadence, 24 configs): QP with c ≤ 1 → Λ = lnL_LTTE − lnL_QP = −3…−25, LTTE +9…+28 (separable); QP with c = ∞ → Λ +9…+20, like LTTE
   (degenerate, as expected); c = 2 at P_q = 4000 d also LTTE-like. Full run launched: 30 cadences × 24 configs = 720 (logs/stage1_ident.log).
+
+## 2026-10-06 — Stage 1 result: identifiability of LTTE vs quasi-periodic intrinsic modulation (results/stage1/ident.parquet, ident_summary.csv; plots/stage1_identifiability.png)
+720 simulations (30 real I+MB+MR cadences, 1992–2026, ~40 seasons incl. MACHO bands; 0 failures). Λ = lnL_LTTE − max_{c ≤ c_max} lnL_QP; threshold = 99th
+percentile of Λ over QP sims with true c ≤ c_max (pooled P, S/N; Λ_99 = 13–17).
+Power of the orbit test at 1% false alarm (rows P, e, S/N = K/σ_season; columns c_max = 0.5 / 1 / 2 / 4 / ∞):
+| P [d] | e | S/N | 0.5 | 1 | 2 | 4 | ∞ |
+|---|---|---|---|---|---|---|---|
+| 2000 | 0 | 4 | 1.00 | 0.93 | 0.47 | 0.17 | 0.00 |
+| 2000 | 0 | 8 | 1.00 | 1.00 | 0.93 | 0.77 | 0.13 |
+| 2000 | 0.5 | 4 | 0.97 | 0.97 | 0.87 | 0.83 | 0.23 |
+| 2000 | 0.5 | 8 | 1.00 | 1.00 | 1.00 | 1.00 | 0.97 |
+| 4000 | 0 | 4 | 0.73 | 0.53 | 0.13 | 0.07 | 0.00 |
+| 4000 | 0 | 8 | 1.00 | 1.00 | 0.87 | 0.60 | 0.00 |
+| 4000 | 0.5 | 4 | 0.73 | 0.70 | 0.53 | 0.53 | 0.23 |
+| 4000 | 0.5 | 8 | 0.97 | 1.00 | 1.00 | 1.00 | 0.93 |
+Leakage (QP more coherent than the bound passing as orbits at the 1% threshold): 27–48%.
+Conclusions (tested):
+1. Against an UNBOUNDED quasi-periodic alternative (includes strictly periodic intrinsic modulation) circular orbits are not identifiable from timing
+   (power 0–0.13), as predicted; eccentric orbits (e = 0.5) at S/N 8 remain identifiable (0.93–0.97): the Keplerian waveform is the discriminant.
+2. With the alternative bounded to coherence ≤ 1–2 periods, orbits are recovered with power 0.5–1.0 (S/N 4) and ~1.0 (S/N 8).
+3. Any timing-only claim for low-e orbits is conditional on intrinsic modulation being less coherent than the bound; signals more coherent than the bound
+   are indistinguishable (27–48% leakage). → the coherence distribution of intrinsic modulation must be MEASURED (population of real stars) or bounded by
+   external data; eccentric high-S/N signals are the robust class.
