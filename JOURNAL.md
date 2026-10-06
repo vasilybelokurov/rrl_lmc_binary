@@ -835,3 +835,9 @@ Old-cut population check on 1992–2026 (same logic as v3 Part B):
 - D survival, real MACHO stars vs empirical sims: P(D > 10/20/40/80) = 0.845/0.471/0.230/0.057 vs 0.851/0.428/0.177/0.046 (null 0.278/0.003/0/0).
 - All cuts except the α veto: real 239 vs empirical-predicted 289; α pass among real such stars 0.39 → expected after α ≈ 112 vs **real 93 candidates**.
 → As in v3: **no population excess of candidates over realistic timing noise** on the 34-yr baseline either. (Old ad hoc cuts; superseded by stages 3–4.)
+
+## 2026-10-06 — Refit v4 orchestrator stopped before B4 (user agreed)
+B3 (OGLE-only Level 1 sims, 800 × 18, 1992–2026 epochs) completed → results/inject/series_v4_ogle (reusable season series for stages 3–4: LTTE injections
+→ efficiency; empirical red noise → false-pass). B4 (OGLE-only Level 2 = old D statistics) skipped: only served the old-cut check (already done with MACHO).
+Limitation of all v4 sims: ad hoc nuisance priors; no coherent quasi-periodic class; no amplitude variability in the empirical class → stage 4 needs new
+simulations drawn from the stage-2 models fitted to real stars.
