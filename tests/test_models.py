@@ -53,3 +53,15 @@ def test_fit_qp_recovers_period_of_coherent_modulation():
     r = fit_qp(t, y, err, band, coherence=(1.0, 4.0, np.inf), n_amp=8, n_s=4)
     assert abs(r["best"]["Pq"] / 3000 - 1) < 0.15
     assert r["lnl"] - r["lnl_white"] > 10
+
+
+def test_fit_rn_prefers_red_noise_and_qp_nests_it_poorly():
+    """Smooth red noise: fit_rn beats white noise; its likelihood is at least that of the best QP with short coherence
+    minus a small margin (QP with c = 0.5 approximates an SE kernel only roughly)."""
+    from rrlbin.models import fit_rn, se_kernel
+    rng = np.random.default_rng(4)
+    t, band, err = seasons(rng)
+    y = rng.multivariate_normal(np.zeros(t.size), se_kernel(t, t, 900 / DAY, 1500.0) + np.diag(err ** 2))
+    r = fit_rn(t, y, err, band, n_amp=8, n_s=4)
+    assert r["lnl"] - max(ml_lnl(t, y, err, band, None, s) for s in (0.0, 1e-3, 3e-3, 1e-2)) > 5
+    assert 350 <= r["ell"] <= 3000

@@ -58,20 +58,30 @@ def _amp_grid(err, n):
     return np.r_[0.0, np.geomspace(0.3, 30, n) * np.median(err)]
 
 
-def fit_qp(t, y, err, band, priors=None, periods=None, coherence=COHERENCE, n_amp=12, n_s=6):
+def s_grid(err, n=8):
+    """White-jitter grid shared by ALL models (so that nested likelihoods are comparable): 0 and 0.1-30 x median error."""
+    return np.r_[0.0, np.geomspace(0.1, 30, n) * np.median(err)]
+
+
+def fit_white(t, y, err, band, priors=None, n_s=8):
+    """H_W: trend + offsets + white jitter only (the common floor of every model). Returns dict(lnl, s)."""
+    return dict(zip(("lnl", "s"), max((ml_lnl(t, y, err, band, None, s, priors), s) for s in s_grid(err, n_s))))
+
+
+def fit_qp(t, y, err, band, priors=None, periods=None, coherence=COHERENCE, n_amp=12, n_s=8):
     """ML fit of H_QP on grids of (P_q, coherence c = l/P_q, A, s). Returns dict: lnl (best over all), and lnl_by_c
     (best for each coherence value, so that a bound c <= c_max can be applied afterwards), with the best parameters."""
     t = np.asarray(t, float)
     if periods is None:
         periods = period_grid(np.ptp(t), p_max_factor=0.5, oversample=2)
-    A_grid, s_grid = _amp_grid(err, n_amp), _amp_grid(err, n_s - 1)
+    A_grid, sg = _amp_grid(err, n_amp), s_grid(err, n_s)
     by_c = {}
     for c in coherence:
         best = (-np.inf, None)
         for Pq in periods:
             base = qp_kernel(t, t, 1.0, Pq, c * Pq)
             for A in A_grid[1:]:
-                for s in s_grid:
+                for s in sg:
                     try:
                         l = ml_lnl(t, y, err, band, A ** 2 * base, s, priors)
                     except np.linalg.LinAlgError:
@@ -79,7 +89,7 @@ def fit_qp(t, y, err, band, priors=None, periods=None, coherence=COHERENCE, n_am
                     if l > best[0]:
                         best = (l, dict(Pq=float(Pq), A=float(A), s=float(s), c=float(c)))
         by_c[c] = best
-    l0 = max(ml_lnl(t, y, err, band, None, s, priors) for s in s_grid)     # A = 0 (no modulation) for reference
+    l0 = fit_white(t, y, err, band, priors, n_s)["lnl"]     # A = 0 (no modulation): the floor
     c_best = max(by_c, key=lambda c: by_c[c][0])
     return dict(lnl=max(by_c[c_best][0], l0), lnl_by_c={c: v[0] for c, v in by_c.items()}, best=by_c[c_best][1], lnl_white=l0)
 
@@ -99,3 +109,24 @@ def fit_ltte(t, y, err, band, priors=None, p_max_factor=0.5, s_factors=(0.0, 0.3
     e0 = np.median(err)
     lnl, s_best = max((ml_lnl(t, y, err, band, None, f * e0, priors, extra=g), f * e0) for f in s_factors)
     return dict(lnl=lnl, P=k["P"], A_s=k["A_s"], e=k["e"], omega=k["omega"], t_p=k["t_p"], s=s_best)
+
+
+RN_ELLS = (350.0, 700.0, 1500.0, 3000.0, 6000.0)
+
+
+def fit_rn(t, y, err, band, priors=None, ells=RN_ELLS, n_amp=12, n_s=8):
+    """ML fit of H_RN (smooth red noise, squared-exponential kernel) on grids of (l, A, s). Returns dict(lnl, A, ell, s)."""
+    t = np.asarray(t, float)
+    A_grid, sg = _amp_grid(err, n_amp), s_grid(err, n_s)
+    best = (-np.inf, None)
+    for ell in ells:
+        base = se_kernel(t, t, 1.0, ell)
+        for A in A_grid:
+            for s in sg:
+                try:
+                    l = ml_lnl(t, y, err, band, A ** 2 * base, s, priors)
+                except np.linalg.LinAlgError:
+                    continue
+                if l > best[0]:
+                    best = (l, dict(A=float(A), ell=float(ell), s=float(s)))
+    return dict(lnl=best[0], **best[1])
