@@ -95,7 +95,7 @@ def main():
     with Pool(a.workers, initializer=_init, initargs=(cm, lag, a.t_split)) as pool:
         rows = pool.map(work, [(i, recs[i]) for i in idx], chunksize=1)
     R = pd.DataFrame(rows).set_index("row")
-    meta = d.drop(columns=[k for k in KEYS if k in d]).iloc[R.index]
+    meta = d.drop(columns=[k for k in KEYS + ["ok"] if k in d]).iloc[R.index]
     out = pd.concat([meta, f.iloc[R.index][["D", "P_best", "amp_s", "all"]].rename(columns={"all": "selected"}), R], axis=1)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(a.out, index=False)

@@ -716,3 +716,21 @@ fields re-reduced after Soszyński+2016 — consistent with the re-reduction fou
 - The 27 tested frozen candidates in v4: 20/27 still pass the cuts, including most whose frozen orbit FAILED (e.g. 10449, 09642, 17610, 19535): with 34 yr the
   circular-orbit search re-fits a modified orbit + noise. → the D-based selection does not discriminate orbits from red noise; vetting must rest on out-of-sample
   prediction and simulation-calibrated rates. 13854 (D 71 → 98, P 4622 → 4784 d) and 15158 (D 49 → 57, P 3108 → 3086 d) remain candidates with stable periods.
+
+## 2026-10-06 — v4 noise checkpoint; generic out-of-sample orbit test (`predict.split_test`, `scripts/split_test.py`) on the real v4 candidates
+- A5 checkpoint (60 stars × 4 empirical sims per sample): season errors sim/real ≈ 1.0 (I 1.02, B 1.12, R 1.04; OGLE-only 0.97). χ²_ν about H0, real vs sim:
+  MACHO stars I 2.4/22.5 vs 4.9/47 (p50/p90; sims ~2× noisier = conservative), B 2.2/26 vs 2.3/15, R 2.7/15 vs 1.9/10; OGLE-only I 2.7/197 vs 3.7/14 (real tail
+  heavier, as in v3). Timescale test: real per band 2.1/4.8/17, joint 3.2/21/148 vs sims 2.1/7.9/33, 4.3/24/167. Same pattern as the accepted v3 checkpoint.
+- `predict.split_test` (test: synthetic orbit favoured out of sample, ln BF 6, p 0.08; GP wander median ln BF < 3): train on seasons before HJD′ 7600
+  (1992–2016.5), everything fitted on training only (unwrap + band alignment, O−C period search → P0, H0 GP REML, Keplerian with the H0 white jitter, H1 GP
+  after the orbit), predict the 2016/17–2025/26 OGLE I seasons (whole-cycle continuation from the last training season), score as in the frozen test.
+  `scripts/split_test.py` selects with the v4 cuts, identically for real stars and simulations → sims give the false-pass rate INCLUDING selection
+  (Codex point). Bug found and fixed: duplicate `ok` column (series + test) in the output.
+- Real (results/split_v4/real.csv; 20 min, 2 workers): 140 v4 candidates + the 27 frozen; testable 144 (04400, 15201: no post-2016 data).
+  Consistency with the frozen test (27 stars): Spearman ρ(ln BF) = 0.94; 15158 +8.4 (frozen +7.2), 13854 +4.8, p 0.02 (frozen +8.0, 0.14; training-only P0 and
+  jitter differ from the frozen fit); all 20 frozen rejections reject again.
+- **138 selected candidates: pass (p_h1 > 0.01, ln BF > 3) 14, reject (p < 0.001, ln BF < −3) 97, other 27**; ln BF p10/50/90 = −423/−33/+4.
+  Passes: 13083 (I only, +10.1), 15158 (+8.4), 00604 (I, +8.1), 08275 (+7.6), 00723 (I, +7.4), 11047 (+7.3), 04633 (+7.0, e 0.69), 03700 (+6.7), 13859 (+5.4),
+  08101 (+5.1, p 0.01), 13854 (+4.8, p 0.02), 19233 (+4.7), 18547 (+3.9, p 0.01, e 0.67), 16301 (+3.4, e 0.95 → unreliable). 11 of 14 have MACHO.
+  NOT yet interpretable: for the 96 new v4 candidates the selection used the post-2016 data, so the pass rate must be compared with the same test on
+  simulated nuisance stars passing the same cuts (B1–B4 running; then `split_test.py` on stats_v4_macho/ogle).
